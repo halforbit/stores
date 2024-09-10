@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+    <!-- NuGet package metadata -->
+    <PackageId>Halforbit.Stores</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Halforbit</Authors>
+    <Company>Halforbit</Company>
+    <Description>Easily create request and responses to blob and file storage.</Description>
+    <PackageTags></PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <!-- License type -->
+    <RepositoryUrl>https://github.com/halforbit/stores</RepositoryUrl>
+    <!-- Optional repository -->
+
+    <!-- Optional properties -->
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReleaseNotes>Initial release of the package.</PackageReleaseNotes>
+  </PropertyGroup>
+
+
+</Project>
