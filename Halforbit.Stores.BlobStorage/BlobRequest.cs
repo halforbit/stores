@@ -30,6 +30,8 @@ record BlobRequest<TKey, TValue> :
 
     public BlobContainerClient? BlobContainerClient { get; init; }
 
+    public BlobType BlobType { get; init; }
+
     public IPipelineSerializer? Serializer { get; init; }
 
     public IContentSerializer? ContentSerializer { get; init; }
@@ -57,6 +59,7 @@ record BlobRequest<TKey, TValue> :
             _ConnectionString = _ConnectionString,
             _ContainerName = _ContainerName,
             BlobContainerClient = BlobContainerClient,
+            BlobType = BlobType,
             Serializer = Serializer,
             ContentSerializer = ContentSerializer,
             ContentType = ContentType,
@@ -76,6 +79,7 @@ record BlobRequest<TKey, TValue> :
             _ConnectionString = _ConnectionString,
             _ContainerName = _ContainerName,
             BlobContainerClient = BlobContainerClient,
+            BlobType = BlobType,
             Serializer = Serializer,
             ContentSerializer = ContentSerializer,
             ContentType = ContentType,
@@ -95,6 +99,7 @@ record BlobRequest<TKey, TValue> :
             _ConnectionString = _ConnectionString,
             _ContainerName = _ContainerName,
             BlobContainerClient = BlobContainerClient,
+            BlobType = BlobType,
             Serializer = Serializer,
             ContentSerializer = ContentSerializer,
             ContentType = ContentType,

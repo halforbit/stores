@@ -28,11 +28,26 @@ public static class BlobRequestBuilderExtensions
 
         var response = await q.BlobContainerClient.CreateIfNotExistsAsync();
 
-        return new CreateContainerResponse();
+        return new();
     }
 
-    public static IBlockBlobRequest BlockBlobs(
-        this IBlobRequestWithContainer request) => (BlobRequest<None, None>)request;
+    public static async Task<DeleteContainerResponse> DeleteContainerAsync(
+        this IBlobRequestWithContainer request)
+    {
+		var q = (BlobRequest<None, None>)request;
+
+		if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient has not been created.");
+
+        await q.BlobContainerClient.DeleteIfExistsAsync();
+
+        return new();
+	}
+
+	public static IBlockBlobRequest BlockBlobs(
+        this IBlobRequestWithContainer request) => (BlobRequest<None, None>)request with
+        {
+            BlobType = BlobType.BlockBlob
+        };
 
     public static IBlockBlobRequestWithSerialization JsonSerialization(
         this IBlockBlobRequest request) => (BlobRequest<None, None>)request with
@@ -60,11 +75,15 @@ public static class BlobRequestBuilderExtensions
 
     public static IBlockBlobRequestWithKeyMap<TKey> Key<TKey>(
         this IBlockBlobRequestWithSerialization request,
-        Expression<Func<TKey, string>> map) => ((BlobRequest<None, None>)request).RecastTo<TKey, None>() with
-        {
-            KeyMap = KeyMap<TKey>.Define(map)
-        };
+        Expression<Func<TKey, string>> map)
+    {
+        var q = (BlobRequest<None, None>)request;
 
+        return q.RecastTo<TKey, None>() with
+        {
+            KeyMap = KeyMap<TKey>.Define(map, $"{q.ContentTypeExtension}{q.ContentEncodingExtension}")
+        };
+    }
     public static IBlockBlobRequestWithFixedKey Key(
         this IBlockBlobRequestWithSerialization request,
         string key) => (BlobRequest<None, None>)request with

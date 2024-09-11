@@ -1,7 +1,8 @@
-﻿using Azure;
+﻿using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Azure.Storage.Sas;
 using Microsoft.IO;
+using System.Net;
 using System.Net.Http.Headers;
 
 namespace Halforbit.Stores;
@@ -10,66 +11,126 @@ public static class BlobRequestOperationExtensions
 {
     static RecyclableMemoryStreamManager _recyclableMemoryStreamManager = new RecyclableMemoryStreamManager();
 
-    public static Task<GetBlobResponse<TKey, TValue>> GetAsync<TKey, TValue>(
+    public static IAsyncEnumerable<Blob> EnumerateBlobsAsync(
+        this IBlobRequestWithContainer request,
+        string prefix = null)
+    {
+        var q = (BlobRequest<None, None>)request;
+
+        return EnumerateBlobsAsync(q, prefix);
+    }
+
+    public static IAsyncEnumerable<Blob> EnumerateBlobsAsync<TKey, TValue>(
         this IBlockBlobRequestWithKeyMapValue<TKey, TValue> request,
-        TKey key) => throw new NotImplementedException();
+        object partialKey = null)
+    {
+        var q = (BlobRequest<TKey, TValue>)request;
 
-    public static Task<TValue?> ValueOrNull<TKey, TValue>(
-        this Task<GetBlobResponse<TKey, TValue>> responseTask) => throw new NotImplementedException();
+        if (q.KeyMap is null) throw new ArgumentNullException(nameof(q.KeyMap));
 
-    public static Task<TValue> ValueOrThrow<TKey, TValue>(
-        this Task<GetBlobResponse<TKey, TValue>> responseTask) => throw new NotImplementedException();
+        if (!q.KeyMap.TryMapPartialKeyToPrefixString(partialKey, out var prefix))
+        {
+            throw new ArgumentException("Failed to map partial key to prefix string.");
+        }
 
-    public static async Task<TValue?> ValueOrNull<TValue>(
-        this Task<GetBlobResponse<TValue>> responseTask) => (await responseTask).Value;
+        return EnumerateBlobsAsync(q, prefix);
+    }
+	
+    static async IAsyncEnumerable<Blob> EnumerateBlobsAsync<TKey, TValue>(
+		BlobRequest<TKey, TValue> q,
+        string prefix = null)
+    {
+		if (q.BlobContainerClient is null) throw new ArgumentNullException(nameof(q.BlobContainerClient));
+        
+        await foreach (var blobItem in q.BlobContainerClient.GetBlobsAsync(
+            BlobTraits.Metadata,
+            BlobStates.Version,
+            prefix))
+        {
+            if (q.KeyMap is not null && 
+                !q.KeyMap.TryMapStringToKey(blobItem.Name, out var key))
+            {
+                continue;
+            }
 
-    public static async Task<TValue> ValueOrThrow<TValue>(
-        this Task<GetBlobResponse<TValue>> responseTask) => (await responseTask).Value ?? throw new Exception("Requested blob was not found.");
+            if (q.BlobType != BlobType.Unknown)
+            {
+                if (q.BlobType != ConvertBlobType(blobItem.Properties.BlobType))
+                {
+                    continue;
+                }
+            }
 
-    public static TValue? ValueOrNull<TValue>(
-        this GetBlobResponse<TValue> response) => response.Value;
+            yield return new()
+            {
+                Name = blobItem.Name,
+                ETag = blobItem.Properties.ETag?.ToString() ?? throw new ArgumentNullException("ETag"),
+                VersionId = blobItem.VersionId,
+                Metadata = blobItem.Metadata ?? new Dictionary<string, string>(),
+                CreationTime = blobItem.Properties.CreatedOn?.UtcDateTime ?? throw new ArgumentNullException("CreatedOn"),
+                BlobType = ConvertBlobType(blobItem.Properties.BlobType ?? throw new ArgumentNullException("BlobType"))
+            };
+        }
+    }
 
-    public static TValue ValueOrThrow<TValue>(
-        this GetBlobResponse<TValue> response) => response.Value ?? throw new Exception("Requested blob was not found.");
+    static BlobType ConvertBlobType(Azure.Storage.Blobs.Models.BlobType? blobType)
+    {
+        switch (blobType)
+        {
+            case null: return BlobType.Unknown;
+            case Azure.Storage.Blobs.Models.BlobType.Block: return BlobType.BlockBlob;
+            case Azure.Storage.Blobs.Models.BlobType.Append: return BlobType.AppendBlob;
+            case Azure.Storage.Blobs.Models.BlobType.Page: return BlobType.PageBlob;
+            default: throw new ArgumentException("Unhandled blob type.");
+        }
+    }
 
-    public static Task<PutBlobResponse<TKey, TValue>> PutAsync<TKey, TValue>(
-        this IBlockBlobRequestWithKeyMapValue<TKey, TValue> request,
-        TKey key,
-        TValue value) => throw new NotImplementedException();
-
-    //public static async Task<PutBlobResponse<TValue>> UpsertAsync<TValue>(
-    //    this IBlockBlobRequestWithSingleValue<TValue> request,
-    //    TValue value)
-    //{
-    //    var q = (BlobRequest<None, TValue>)request;
-
-    //    if (q.Serializer is null) throw new Exception("Serializer is not specified.");
-
-    //    using var stream = await q.BlobContainerClient
-    //        .GetBlockBlobClient(BuildBlobName(request))
-    //        .OpenWriteAsync(overwrite: true);
-
-    //    q.Serializer.Serialize(stream, value);
-
-    //    return new PutBlobResponse<TValue>();
-    //}
-
-    public static async Task<string> UpsertBlobAsync<TValue>(
+    public static Task<PutResult> UpsertBlobAsync<TValue>(
         this IBlockBlobRequestWithSingleValue<TValue> request,
         TValue value,
         Dictionary<string, string>? metadata = null)
     {
-        var q = (BlobRequest<None, TValue>)request;
+		var q = (BlobRequest<None, TValue>)request;
 
-        if (q.Serializer is null) throw new Exception("Serializer is not specified.");
+        return UpsertBlobAsync(
+            q: q,
+            key: default, 
+            value: value, 
+            metadata: metadata);
+    }
 
-        if (q.ContentSerializer is null) throw new Exception("Serializer is not specified.");
+	public static Task<PutResult> UpsertBlobAsync<TKey, TValue>(
+		this IBlockBlobRequestWithKeyMapValue<TKey, TValue> request,
+		TKey key, 
+        TValue value,
+		Dictionary<string, string>? metadata = null)
+	{
+		var q = (BlobRequest<TKey, TValue>)request;
 
-        var sasUrl = q.BlobContainerClient
-            .GetBlockBlobClient(BuildBlobName(request))
+		return UpsertBlobAsync(
+			q: q,
+			key: key,
+			value: value,
+			metadata: metadata);
+	}
+
+	static async Task<PutResult> UpsertBlobAsync<TKey, TValue>(
+		BlobRequest<TKey, TValue> q,
+		TKey key,
+        TValue value,
+		Dictionary<string, string>? metadata = null)
+	{
+        if (q.Serializer is null) throw new ArgumentNullException("Serializer is not specified.");
+
+        if (q.ContentSerializer is null) throw new ArgumentNullException("Serializer is not specified.");
+
+		var blobName = BuildBlobName(q, key);
+
+		var sasUrl = q.BlobContainerClient
+            .GetBlockBlobClient(blobName)
             .GenerateSasUri(
-                BlobSasPermissions.All,
-                DateTimeOffset.UtcNow.AddMinutes(5));
+				BlobSasPermissions.All,
+				DateTimeOffset.UtcNow.AddMinutes(5));
 
 
         var pipeline = new ContentPipeline(q.ContentSerializer, q.CompressionStrategy);
@@ -116,15 +177,29 @@ public static class BlobRequestOperationExtensions
 
         response.EnsureSuccessStatusCode();
 
+        var versionId = default(string?);
+
+        if (response.Headers.TryGetValues("x-ms-version-id", out var versionIdValues))
+        {
+            versionId = versionIdValues.First();
+        }
+
         if (response.Headers.ETag != null)
         {
-            return response.Headers.ETag.Tag;
+            return new()
+            {
+                Name = blobName,
+
+                ETag = response.Headers.ETag.Tag,
+                
+                VersionId = versionId
+            };
         }
 
         throw new InvalidOperationException("ETag not returned in response.");
     }
 
-    public static async Task<bool> ExistsAsync<TValue>(
+    public static async Task<bool> BlobExistsAsync<TValue>(
         this IBlockBlobRequestWithSingleValue<TValue> request)
     {
         var q = (BlobRequest<None, TValue>)request;
@@ -132,11 +207,24 @@ public static class BlobRequestOperationExtensions
         if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient is not initialized.");
 
         return await q.BlobContainerClient
-            .GetBlobClient(BuildBlobName(request))
+            .GetBlobClient(BuildBlobName(q))
             .ExistsAsync();
     }
 
-    public static async Task<bool> DeleteAsync<TValue>(
+	public static async Task<bool> BlobExistsAsync<TKey, TValue>(
+		this IBlockBlobRequestWithKeyMapValue<TKey, TValue> request,
+        TKey key)
+	{
+		var q = (BlobRequest<TKey, TValue>)request;
+
+		if (q.BlobContainerClient is null) throw new ArgumentNullException(nameof(q.BlobContainerClient));
+
+		return await q.BlobContainerClient
+			.GetBlobClient(BuildBlobName(q, key))
+			.ExistsAsync();
+	}
+
+	public static async Task<bool> DeleteBlobAsync<TValue>(
         this IBlockBlobRequestWithSingleValue<TValue> request)
     {
         var q = (BlobRequest<None, TValue>)request;
@@ -144,51 +232,54 @@ public static class BlobRequestOperationExtensions
         if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient is not initialized.");
 
         return await q.BlobContainerClient
-            .GetBlobClient(BuildBlobName(request))
+            .GetBlobClient(BuildBlobName(q))
             .DeleteIfExistsAsync();
     }
 
-    public static async Task<TValue?> GetAsync<TValue>(
-        this IBlockBlobRequestWithSingleValue<TValue> request)
+	public static async Task<bool> DeleteBlobAsync<TKey, TValue>(
+		this IBlockBlobRequestWithKeyMapValue<TKey, TValue> request,
+        TKey key)
+	{
+		var q = (BlobRequest<TKey, TValue>)request;
+
+		if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient is not initialized.");
+
+		return await q.BlobContainerClient
+			.GetBlobClient(BuildBlobName(q, key))
+			.DeleteIfExistsAsync();
+	}
+
+	public static Task<Blob<TValue>?> GetBlobOrNullAsync<TValue>(
+		this IBlockBlobRequestWithSingleValue<TValue> request)
     {
         var q = (BlobRequest<None, TValue>)request;
 
-        if (q.Serializer is null) throw new Exception("Serializer is not specified.");
-
-        try
-        {
-            using var readStream = await q.BlobContainerClient
-                .GetBlockBlobClient(BuildBlobName(request))
-                .OpenReadAsync();
-
-            var stream = readStream;
-
-            if (q.Compressor is IPipelineCompressor c)
-            {
-                stream = c.Decompress(stream);
-            }
-
-            return q.Serializer.Deserialize<TValue>(stream);
-        }
-        catch (RequestFailedException rfex) when (rfex.ErrorCode == "BlobNotFound")
-        {
-            return default;
-        }
+        return GetBlobOrNullAsync(q);
     }
 
-    public static async Task<Blob<TValue>?> GetBlobOrNullAsync<TValue>(
-        this IBlockBlobRequestWithSingleValue<TValue> request)
-    {
-        var q = (BlobRequest<None, TValue>)request;
+	public static Task<Blob<TValue>?> GetBlobOrNullAsync<TKey, TValue>(
+		this IBlockBlobRequestWithKeyMapValue<TKey, TValue> request,
+        TKey key)
+	{
+		var q = (BlobRequest<TKey, TValue>)request;
 
+		return GetBlobOrNullAsync(q, key);
+	}
+
+	static async Task<Blob<TValue>?> GetBlobOrNullAsync<TKey, TValue>(
+        BlobRequest<TKey, TValue> q,
+        TKey? key = default)
+    {
         if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient is not initialized.");
 
         if (q.Serializer is null) throw new Exception("Serializer is not specified.");
 
         if (q.ContentSerializer is null) throw new Exception("Serializer is not specified.");
 
-        var sasUrl = q.BlobContainerClient
-            .GetBlockBlobClient(BuildBlobName(request))
+        var blobName = BuildBlobName(q, key);
+
+		var sasUrl = q.BlobContainerClient
+            .GetBlockBlobClient(blobName)
             .GenerateSasUri(
                 BlobSasPermissions.All, 
                 DateTimeOffset.UtcNow.AddMinutes(5));
@@ -201,10 +292,17 @@ public static class BlobRequestOperationExtensions
             httpRequestMessage, 
             HttpCompletionOption.ResponseHeadersRead);
 
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
         response.EnsureSuccessStatusCode();
 
         var metadata = new Dictionary<string, string>();
-        
+
+        var versionId = default(string?);
+
         foreach (var header in response.Headers)
         {
             if (header.Key.StartsWith("x-ms-meta-", StringComparison.OrdinalIgnoreCase))
@@ -213,9 +311,21 @@ public static class BlobRequestOperationExtensions
         
                 metadata[metadataKey] = string.Join(",", header.Value);
             }
+            else if (header.Key == "x-ms-version-id")
+            {
+                versionId = header.Value.Single();
+            }
         }
 
-        var contentStream = await response.Content.ReadAsStreamAsync();
+        var eTag = response.Headers.ETag?.Tag ?? throw new ArgumentException("Response did not include eTag.");
+
+        var creationTime = response.Headers.GetValues("x-ms-creation-time").FirstOrDefault() ?? 
+            throw new ArgumentException("Response did not include creation time.");
+
+        var blobType = response.Headers.GetValues("x-ms-blob-type").FirstOrDefault() ?? 
+            throw new ArgumentException("Response did not include blob type.");
+
+		var contentStream = await response.Content.ReadAsStreamAsync();
 
         var pipeline = new ContentPipeline(q.ContentSerializer, q.CompressionStrategy);
 
@@ -228,28 +338,29 @@ public static class BlobRequestOperationExtensions
 
         return new()
         {
+            Name = blobName,
             Value = value,
-            Info = new BlobInfo()
+            ETag = eTag,
+            VersionId = versionId,
+            Metadata = metadata,
+            CreationTime = DateTime.Parse(creationTime),
+            BlobType = Enum.Parse<BlobType>(blobType)
         };
-
-        //var stream = contentStream;
-
-        //if (q.Compressor is IPipelineCompressor c)
-        //{
-        //    stream = c.Decompress(stream);
-        //}
-
-        //return new()
-        //{
-        //    Value = q.Serializer.Deserialize<TValue>(stream),
-            
-        //    Info = new BlobInfo()
-        //};
     }
 
-    static string BuildBlobName<TValue>(IBlockBlobRequestWithSingleValue<TValue> request)
+    static string BuildBlobName<TKey, TValue>(
+        BlobRequest<TKey, TValue> q, 
+        TKey? key = default)
     {
-        var q = (BlobRequest<None, TValue>)request;
+        if (q.KeyMap is not null)
+        {
+            if (!q.KeyMap.TryMapKeyToString(key, out var name))
+            {
+                throw new ArgumentException("Could not map key to string.");
+            }
+
+            return name;
+        }
 
         return $"{q.Key}{q.ContentTypeExtension}{q.ContentEncodingExtension}";
     }

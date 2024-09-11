@@ -18,9 +18,11 @@ public class KeyMap<TKey>
 
     readonly IReadOnlyList<Type> _propertyTypes;
 
-    KeyMap(Expression<Func<TKey, string>> map)
+    KeyMap(
+        Expression<Func<TKey, string>> map,
+        string suffix)
     {
-        _mapSegments = GetMapSegments(map);
+        _mapSegments = GetMapSegments(map, suffix);
 
         _toString = map.Compile();
 
@@ -33,9 +35,13 @@ public class KeyMap<TKey>
             [typeof(TKey)];
     }
 
-    public static KeyMap<TKey> Define(Expression<Func<TKey, string>> map)
+    public static KeyMap<TKey> Define(
+        Expression<Func<TKey, string>> map, 
+        string suffix)
     {
-        return new KeyMap<TKey>(map);
+        return new KeyMap<TKey>(
+            map, 
+            suffix);
     }
 
     public bool TryMapStringToKey(
@@ -324,7 +330,9 @@ public class KeyMap<TKey>
         };
     }
 
-    public static MapSegment[] GetMapSegments<TKey>(Expression<Func<TKey, string>> expression)
+    public static MapSegment[] GetMapSegments<TKey>(
+        Expression<Func<TKey, string>> expression,
+        string suffix)
     {
         var body = expression.Body;
 
@@ -334,6 +342,10 @@ public class KeyMap<TKey>
                 new MapSegment
                 {
                     Text = constant.Value.ToString().AsMemory()
+                },
+                new MapSegment
+                {
+                    Text = suffix.AsMemory()
                 }];
         }
 
@@ -395,7 +407,10 @@ public class KeyMap<TKey>
                     }
                 }
 
-                return ParseMapSegments(formatString, args);
+                return ParseMapSegments(
+                    formatString, 
+                    args, 
+                    suffix);
             }
         }
 
@@ -404,7 +419,8 @@ public class KeyMap<TKey>
 
     static MapSegment[] ParseMapSegments(
         string format,
-        Expression[] args)
+        Expression[] args,
+        string suffix)
     {
         // This method is adapted from the `AppendFormatHelper` method of the `StringBuilder` class in
         // the .NET source code:
@@ -619,6 +635,8 @@ public class KeyMap<TKey>
 
             curSegment.Clear();
         }
+
+        segments.Add(new() { Text = suffix.AsMemory() });
 
         return segments.ToArray();
     }

@@ -1,4 +1,3 @@
-using Halforbit.Stores;
 using System.Linq.Expressions;
 using System.Numerics;
 using System.Reflection;
@@ -6,7 +5,7 @@ using static System.Linq.Expressions.Expression;
 
 namespace Halforbit.Stores;
 
-public static class TypeDictionaryConvertor<T>
+public static class TypeToDictionaryConverter<T>
 {
     static readonly Func<T, Dictionary<string, string>> _objectToDictionary = CreateMapFunction();
 

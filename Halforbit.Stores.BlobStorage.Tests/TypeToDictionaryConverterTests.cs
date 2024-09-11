@@ -1,8 +1,6 @@
-using Halforbit.Stores;
-
 namespace Halforbit.Stores.Tests;
 
-public class TypeDictionaryConverterTests
+public class TypeToDictionaryConverterTests
 {
     [Fact]
     void RecordToDictionary_Success()
@@ -18,7 +16,7 @@ public class TypeDictionaryConverterTests
             Price = 12_345.67
         };
 
-        var dict = TypeDictionaryConvertor<Vehicle>.ToDictionary(value);
+        var dict = TypeToDictionaryConverter<Vehicle>.ToDictionary(value);
 
         Assert.Equal(id.ToString(), dict["vehicle-id"]);
         Assert.Equal("+1993", dict["year"]);

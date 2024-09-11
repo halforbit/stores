@@ -11,9 +11,9 @@ public class KeyMapTests
     [Fact]
     void TryMapKeyToString_TupleKey_Success()
     {        
-        var map = KeyMap<(Guid TenantId, int ProjectId, Guid EntityId)>.Define(k => $"""
-            vehicles/{k.TenantId:N}/{k.ProjectId}/{k.EntityId:N}.json
-            """);
+        var map = KeyMap<(Guid TenantId, int ProjectId, Guid EntityId)>.Define(
+            k => $"vehicles/{k.TenantId:N}/{k.ProjectId}/{k.EntityId:N}",
+            ".json");
 
         var success = map.TryMapKeyToString(
             (TenantId: _tenantId,
@@ -31,11 +31,11 @@ public class KeyMapTests
     [Fact]
     void TryMapPartialKeyToPrefixString_TupleKey_TuplePartialKey_Success()
     {
-        var map = KeyMap<(Guid TenantId, int ProjectId, Guid EntityId)>.Define(k => $"""
-            vehicles/{k.TenantId:N}/{k.ProjectId}/{k.EntityId:N}.json
-            """);
+        var map = KeyMap<(Guid TenantId, int ProjectId, Guid EntityId)>.Define(
+            k => $"vehicles/{k.TenantId:N}/{k.ProjectId}/{k.EntityId:N}",
+			".json");
 
-        var success = map.TryMapPartialKeyToPrefixString(
+		var success = map.TryMapPartialKeyToPrefixString(
             (TenantId: _tenantId,
                 ProjectId: _projectId),
             out var str);
@@ -50,11 +50,11 @@ public class KeyMapTests
     [Fact]
     void TryMapPartialKeyToPrefixString_TupleKey_GuidPartialKey_Success()
     {
-        var map = KeyMap<(Guid TenantId, int ProjectId, Guid EntityId)>.Define(k => $"""
-            vehicles/{k.TenantId:N}/{k.ProjectId}/{k.EntityId:N}.json
-            """);
+        var map = KeyMap<(Guid TenantId, int ProjectId, Guid EntityId)>.Define(
+            k => $"vehicles/{k.TenantId:N}/{k.ProjectId}/{k.EntityId:N}",
+			".json");
 
-        var success = map.TryMapPartialKeyToPrefixString(
+		var success = map.TryMapPartialKeyToPrefixString(
             _tenantId,
             out var str);
 
@@ -68,11 +68,11 @@ public class KeyMapTests
     [Fact]
     void TryMapPartialKeyToPrefixString_TupleKey_NullPartialKey_Success()
     {
-        var map = KeyMap<(Guid TenantId, int ProjectId, Guid EntityId)>.Define(k => $"""
-            vehicles/{k.TenantId:N}/{k.ProjectId}/{k.EntityId:N}.json
-            """);
+		var map = KeyMap<(Guid TenantId, int ProjectId, Guid EntityId)>.Define(
+			k => $"vehicles/{k.TenantId:N}/{k.ProjectId}/{k.EntityId:N}",
+			".json");
 
-        var success = map.TryMapPartialKeyToPrefixString(
+		var success = map.TryMapPartialKeyToPrefixString(
             null,
             out var str);
 
@@ -86,11 +86,11 @@ public class KeyMapTests
     [Fact]
     void TryMapStringToKey_TupleKey_Success()
     {
-        var map = KeyMap<(Guid TenantId, int ProjectId, Guid EntityId)>.Define(k => $"""
-            vehicles/{k.TenantId:N}/{k.ProjectId}/{k.EntityId:N}.json
-            """);
+		var map = KeyMap<(Guid TenantId, int ProjectId, Guid EntityId)>.Define(
+			k => $"vehicles/{k.TenantId:N}/{k.ProjectId}/{k.EntityId:N}",
+			".json");
 
-        var success = map.TryMapStringToKey(
+		var success = map.TryMapStringToKey(
             "vehicles/f812d24c65434cd18452395cb6d803b6/42/788bd9ca5b7a486386447098a109a3e0.json",
             out var key);
 
@@ -106,9 +106,9 @@ public class KeyMapTests
     [Fact]
     void TryMapKeyToString_GuidKey_Success()
     {
-        var map = KeyMap<Guid>.Define(k => $"""
-            vehicles/{k:N}.json
-            """);
+        var map = KeyMap<Guid>.Define(
+            k => $"vehicles/{k:N}",
+			".json");
 
         var success = map.TryMapKeyToString(
             _entityId,
@@ -124,11 +124,11 @@ public class KeyMapTests
     [Fact]
     void TryMapPartialKeyToPrefixString_GuidKey_GuidPartialKey_Success()
     {
-        var map = KeyMap<Guid>.Define(k => $"""
-            vehicles/{k:N}.json
-            """);
+		var map = KeyMap<Guid>.Define(
+			k => $"vehicles/{k:N}",
+			".json");
 
-        var success = map.TryMapPartialKeyToPrefixString(
+		var success = map.TryMapPartialKeyToPrefixString(
             _entityId,
             out var str);
 
@@ -142,11 +142,11 @@ public class KeyMapTests
     [Fact]
     void TryMapPartialKeyToPrefixString_GuidKey_NullPartialKey_Success()
     {
-        var map = KeyMap<Guid>.Define(k => $"""
-            vehicles/{k:N}.json
-            """);
+		var map = KeyMap<Guid>.Define(
+			k => $"vehicles/{k:N}",
+			".json");
 
-        var success = map.TryMapPartialKeyToPrefixString(
+		var success = map.TryMapPartialKeyToPrefixString(
             null,
             out var str);
 
@@ -160,11 +160,11 @@ public class KeyMapTests
     [Fact]
     void TryMapStringToKey_GuidKey_Success()
     {
-        var map = KeyMap<Guid>.Define(k => $"""
-            vehicles/{k:N}.json
-            """);
+		var map = KeyMap<Guid>.Define(
+			k => $"vehicles/{k:N}",
+			".json");
 
-        var success = map.TryMapStringToKey(
+		var success = map.TryMapStringToKey(
             "vehicles/788bd9ca5b7a486386447098a109a3e0.json",
             out var key);
 

@@ -1,41 +1,22 @@
 ﻿using System.IO.Compression;
 using System.IO.Pipelines;
-using System.Net.Sockets;
-using System.Reflection.PortableExecutable;
 using System.Text.Json;
 
 namespace Halforbit.Stores;
 
-public record Blob<TValue>
+public enum BlobType : byte
 {
-    public required TValue Value { get; init; }
-
-    public required BlobInfo Info { get; init; }
+    Unknown = 0,
+    BlockBlob = 1,
+    AppendBlob = 2,
+    PageBlob = 3
 }
-
-public record BlobInfo
-{
-}
-
 
 public record CreateContainerResponse
 {
 }
 
-public record GetBlobResponse<TKey, TValue>
-{
-}
-
-public record PutBlobResponse<TKey, TValue>
-{
-}
-
-public record GetBlobResponse<TValue>
-{
-    internal TValue? Value { get; init; }
-}
-
-public record PutBlobResponse<TValue>
+public record DeleteContainerResponse
 {
 }
 
