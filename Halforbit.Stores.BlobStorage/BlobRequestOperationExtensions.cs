@@ -1,5 +1,4 @@
-﻿using Azure;
-using Azure.Storage.Blobs.Models;
+﻿using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Azure.Storage.Sas;
 using Microsoft.IO;
@@ -14,7 +13,7 @@ public static class BlobRequestOperationExtensions
 
     public static IAsyncEnumerable<Blob> EnumerateBlobsAsync(
         this IBlobRequestWithContainer request,
-        string prefix = null)
+        string? prefix = null)
     {
         var q = (BlobRequest<None, None>)request;
 
@@ -23,7 +22,7 @@ public static class BlobRequestOperationExtensions
 
     public static IAsyncEnumerable<Blob> EnumerateBlobsAsync<TKey, TValue>(
         this IBlockBlobRequestWithKeyMapValue<TKey, TValue> request,
-        object partialKey = null)
+        object? partialKey = null)
     {
         var q = (BlobRequest<TKey, TValue>)request;
 
@@ -39,7 +38,7 @@ public static class BlobRequestOperationExtensions
 	
     static async IAsyncEnumerable<Blob> EnumerateBlobsAsync<TKey, TValue>(
 		BlobRequest<TKey, TValue> q,
-        string prefix = null)
+        string? prefix = null)
     {
 		if (q.BlobContainerClient is null) throw new ArgumentNullException(nameof(q.BlobContainerClient));
         
@@ -115,7 +114,76 @@ public static class BlobRequestOperationExtensions
 			metadata: metadata);
 	}
 
-	static async Task<PutResult> UpsertBlobAsync<TKey, TValue>(
+    static async Task<PutResult> UpsertBlobAsync<TKey, TValue>(
+        BlobRequest<TKey, TValue> q,
+        TKey key,
+        TValue value,
+        Dictionary<string, string>? metadata = null)
+    {
+        using (var span = q.Tracer?.StartActiveSpan(nameof(UpsertBlobAsync)))
+        {
+			if (q.Serializer is null) throw new ArgumentNullException("Serializer is not specified.");
+
+            if (q.ContentSerializer is null) throw new ArgumentNullException("Serializer is not specified.");
+
+            var blobName = BuildBlobName(q, key);
+
+			span?.SetAttribute("BlobName", blobName);
+
+			var sasUrl = q.BlobContainerClient
+				.GetBlockBlobClient(blobName)
+				.GenerateSasUri(
+					BlobSasPermissions.All,
+					DateTimeOffset.UtcNow.AddMinutes(5));
+
+			using var ms = _recyclableMemoryStreamManager.GetStream();
+
+			using (var _ = q.Tracer?.StartActiveSpan("Serialize"))
+			{
+				var pipeline = new ContentPipeline(q.ContentSerializer, q.CompressionStrategy);
+
+				await pipeline.SerializeAndWriteAsync(value, ms);
+			}
+
+			span?.SetAttribute("BlobLength", ms.Length);
+
+			ms.Seek(0, SeekOrigin.Begin);
+
+            BlobContentInfo blobInfo;
+
+            var blobHttpHeaders = new BlobHttpHeaders
+            {
+                ContentType = q.ContentType,
+                ContentEncoding = q.ContentEncoding
+            };
+
+            using (var _ = q.Tracer?.StartActiveSpan("Transmit"))
+            {
+                blobInfo = await q.BlobContainerClient
+                    .GetBlockBlobClient(blobName)
+                    .UploadAsync(ms, new BlobUploadOptions
+                    {
+                        HttpHeaders = blobHttpHeaders,
+                        Metadata = metadata
+                    });
+            }
+
+            var eTag = blobInfo.ETag.ToString();
+
+            span?.SetAttribute("ETag", eTag);
+
+            span?.SetAttribute("VersionId", blobInfo.VersionId);
+
+            return new PutResult
+            {
+                ETag = eTag,
+                Name = blobName,
+                VersionId = blobInfo.VersionId
+            };
+		}
+	}
+
+	static async Task<PutResult> UpsertBlobAsyncX<TKey, TValue>(
 		BlobRequest<TKey, TValue> q,
 		TKey key,
         TValue value,
@@ -190,7 +258,7 @@ public static class BlobRequestOperationExtensions
 
                 response = await httpClient.SendAsync(httpRequestMessage);
             }
-
+            
             try
             {
                 response.EnsureSuccessStatusCode();

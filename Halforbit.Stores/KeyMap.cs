@@ -46,7 +46,7 @@ public class KeyMap<TKey>
 
     public bool TryMapStringToKey(
         string str,
-        out TKey key)
+        out TKey? key)
     {
         var match = _matchingRegex.Match(str);
 
@@ -88,14 +88,14 @@ public class KeyMap<TKey>
             allowPartial: false);
 
     public bool TryMapPartialKeyToPrefixString(
-        object key, 
+        object? key, 
         out string prefix) => TryMapKeyToString(
             key, 
             out prefix, 
             allowPartial: true);
 
     bool TryMapKeyToString(
-        object key, 
+        object? key, 
         out string str, 
         bool allowPartial)
     {
