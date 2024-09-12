@@ -1,4 +1,5 @@
 ﻿using Azure.Storage.Blobs;
+using OpenTelemetry.Trace;
 
 namespace Halforbit.Stores;
 
@@ -24,6 +25,10 @@ record BlobRequest<TKey, TValue> :
     IBlockBlobRequestWithKeyMap<TKey>,
     IBlockBlobRequestWithKeyMapValue<TKey, TValue>
 {
+    public Tracer? Tracer { get; init; }
+
+    public IHttpClientFactory? HttpClientFactory { get; init; }
+
     public string? _ConnectionString { get; init; }
 
     public string? _ContainerName { get; init; }
@@ -56,6 +61,8 @@ record BlobRequest<TKey, TValue> :
     {
         return new BlobRequest<TK, TV>
         {
+            Tracer = Tracer,
+            HttpClientFactory = HttpClientFactory,
             _ConnectionString = _ConnectionString,
             _ContainerName = _ContainerName,
             BlobContainerClient = BlobContainerClient,
@@ -76,7 +83,9 @@ record BlobRequest<TKey, TValue> :
     {
         return new BlobRequest<None, TValue1>
         {
-            _ConnectionString = _ConnectionString,
+            Tracer = Tracer,
+			HttpClientFactory = HttpClientFactory,
+			_ConnectionString = _ConnectionString,
             _ContainerName = _ContainerName,
             BlobContainerClient = BlobContainerClient,
             BlobType = BlobType,
@@ -96,7 +105,9 @@ record BlobRequest<TKey, TValue> :
     {
         return new BlobRequest<TKey, TValue1>
         {
-            _ConnectionString = _ConnectionString,
+            Tracer = Tracer,
+			HttpClientFactory = HttpClientFactory,
+			_ConnectionString = _ConnectionString,
             _ContainerName = _ContainerName,
             BlobContainerClient = BlobContainerClient,
             BlobType = BlobType,

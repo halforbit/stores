@@ -1,10 +1,35 @@
 ﻿using Azure.Storage.Blobs;
+using OpenTelemetry.Trace;
 using System.Linq.Expressions;
 
 namespace Halforbit.Stores;
 
 public static class BlobRequestBuilderExtensions
 {
+    public static IBlobRequestWithConnectionString Trace(
+        this IBlobRequestWithConnectionString request, 
+        TracerProvider tracerProvider)
+    {
+        var q = (BlobRequest<None, None>)request;
+
+        return q with
+        {
+            Tracer = tracerProvider.GetTracer("Halforbit.Stores")
+        };
+    }
+
+    public static IBlobRequestWithConnectionString HttpClientFactory(
+        this IBlobRequestWithConnectionString request,
+        IHttpClientFactory httpClientFactory)
+    {
+        var q = (BlobRequest<None, None>)request;
+
+        return q with
+        { 
+            HttpClientFactory = httpClientFactory
+        };
+    }
+
     public static IBlobRequestWithContainer Container(
         this IBlobRequestWithConnectionString request,
         string name)

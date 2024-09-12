@@ -1,4 +1,5 @@
-﻿using Azure.Storage.Blobs.Models;
+﻿using Azure;
+using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Azure.Storage.Sas;
 using Microsoft.IO;
@@ -120,83 +121,106 @@ public static class BlobRequestOperationExtensions
         TValue value,
 		Dictionary<string, string>? metadata = null)
 	{
-        if (q.Serializer is null) throw new ArgumentNullException("Serializer is not specified.");
-
-        if (q.ContentSerializer is null) throw new ArgumentNullException("Serializer is not specified.");
-
-		var blobName = BuildBlobName(q, key);
-
-		var sasUrl = q.BlobContainerClient
-            .GetBlockBlobClient(blobName)
-            .GenerateSasUri(
-				BlobSasPermissions.All,
-				DateTimeOffset.UtcNow.AddMinutes(5));
-
-
-        var pipeline = new ContentPipeline(q.ContentSerializer, q.CompressionStrategy);
-
-        using var ms = _recyclableMemoryStreamManager.GetStream();
-
-        await pipeline.SerializeAndWriteAsync(value, ms);
-
-        //var stream = (Stream)ms;
-
-        //if (q.Compressor is IPipelineCompressor c)
-        //{
-        //    stream = c.Compress(stream);
-        //}
-
-        //q.Serializer.Serialize(stream, value);
-
-        //stream.Flush();
-
-        ms.Seek(0, SeekOrigin.Begin);
-
-        var httpRequestMessage = new HttpRequestMessage(HttpMethod.Put, sasUrl)
+        using (var span = q.Tracer?.StartActiveSpan(nameof(UpsertBlobAsync)))
         {
-            Content = new StreamContent(ms)
-        };
+            if (q.Serializer is null) throw new ArgumentNullException("Serializer is not specified.");
 
-        httpRequestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            if (q.ContentSerializer is null) throw new ArgumentNullException("Serializer is not specified.");
 
-        if (metadata != null)
-        {
-            foreach (var kvp in metadata)
+            var blobName = BuildBlobName(q, key);
+
+            span?.SetAttribute("blob.name", blobName);
+
+            var sasUrl = q.BlobContainerClient
+                .GetBlockBlobClient(blobName)
+                .GenerateSasUri(
+                    BlobSasPermissions.All,
+                    DateTimeOffset.UtcNow.AddMinutes(5));
+
+            using var ms = _recyclableMemoryStreamManager.GetStream();
+
+            using (var _ = q.Tracer?.StartActiveSpan("Serialize"))
             {
-                httpRequestMessage.Headers.Add($"x-ms-meta-{kvp.Key}", kvp.Value);
+                var pipeline = new ContentPipeline(q.ContentSerializer, q.CompressionStrategy);
+
+                await pipeline.SerializeAndWriteAsync(value, ms);
+            }
+
+            span?.SetAttribute("blob.length", ms.Length);
+
+            //var stream = (Stream)ms;
+
+            //if (q.Compressor is IPipelineCompressor c)
+            //{
+            //    stream = c.Compress(stream);
+            //}
+
+            //q.Serializer.Serialize(stream, value);
+
+            //stream.Flush();
+
+            ms.Seek(0, SeekOrigin.Begin);
+
+            var httpRequestMessage = new HttpRequestMessage(HttpMethod.Put, sasUrl)
+            {
+                Content = new StreamContent(ms)
+            };
+
+            httpRequestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+            if (metadata != null)
+            {
+                foreach (var kvp in metadata)
+                {
+                    httpRequestMessage.Headers.Add($"x-ms-meta-{kvp.Key}", kvp.Value);
+                }
+            }
+
+            httpRequestMessage.Headers.Add("x-ms-version", "2024-11-04");
+
+            httpRequestMessage.Headers.Add("x-ms-blob-type", "BlockBlob");
+
+            httpRequestMessage.Headers.Add("x-ms-date", DateTime.UtcNow.ToString("R"));
+
+            var response = default(HttpResponseMessage);
+
+            using (var _ = q.Tracer?.StartActiveSpan("Transmit"))
+            {
+                var httpClient = q.HttpClientFactory?.CreateClient() ?? new HttpClient();
+
+                response = await httpClient.SendAsync(httpRequestMessage);
+            }
+
+            try
+            {
+                response.EnsureSuccessStatusCode();
+
+                var versionId = default(string?);
+
+                if (response.Headers.TryGetValues("x-ms-version-id", out var versionIdValues))
+                {
+                    versionId = versionIdValues.First();
+                }
+
+                if (response.Headers.ETag != null)
+                {
+                    return new()
+                    {
+                        Name = blobName,
+
+                        ETag = response.Headers.ETag.Tag,
+
+                        VersionId = versionId
+                    };
+                }
+
+                throw new InvalidOperationException("ETag not returned in response.");
+            }
+            finally
+            {
+                response.Dispose();
             }
         }
-
-        httpRequestMessage.Headers.Add("x-ms-version", "2024-11-04");
-
-        httpRequestMessage.Headers.Add("x-ms-blob-type", "BlockBlob");
-
-        httpRequestMessage.Headers.Add("x-ms-date", DateTime.UtcNow.ToString("R"));
-
-        using var response = await new HttpClient().SendAsync(httpRequestMessage);
-
-        response.EnsureSuccessStatusCode();
-
-        var versionId = default(string?);
-
-        if (response.Headers.TryGetValues("x-ms-version-id", out var versionIdValues))
-        {
-            versionId = versionIdValues.First();
-        }
-
-        if (response.Headers.ETag != null)
-        {
-            return new()
-            {
-                Name = blobName,
-
-                ETag = response.Headers.ETag.Tag,
-                
-                VersionId = versionId
-            };
-        }
-
-        throw new InvalidOperationException("ETag not returned in response.");
     }
 
     public static async Task<bool> BlobExistsAsync<TValue>(

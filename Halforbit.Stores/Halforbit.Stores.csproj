@@ -26,4 +26,8 @@
     <PackageReleaseNotes>Initial release of the package.</PackageReleaseNotes>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Api" Version="1.9.0" />
+  </ItemGroup>
+  
 </Project>
