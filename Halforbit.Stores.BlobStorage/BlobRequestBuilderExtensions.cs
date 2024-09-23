@@ -6,8 +6,8 @@ namespace Halforbit.Stores;
 
 public static class BlobRequestBuilderExtensions
 {
-    public static IBlobRequestWithConnectionString Trace(
-        this IBlobRequestWithConnectionString request, 
+    public static IBlobStorageAccount Trace(
+        this IBlobStorageAccount request, 
         TracerProvider tracerProvider)
     {
         var q = (BlobRequest<None, None>)request;
@@ -18,8 +18,8 @@ public static class BlobRequestBuilderExtensions
         };
     }
 
-    public static IBlobRequestWithConnectionString HttpClientFactory(
-        this IBlobRequestWithConnectionString request,
+    public static IBlobStorageAccount HttpClientFactory(
+        this IBlobStorageAccount request,
         IHttpClientFactory httpClientFactory)
     {
         var q = (BlobRequest<None, None>)request;
@@ -30,8 +30,8 @@ public static class BlobRequestBuilderExtensions
         };
     }
 
-    public static IBlobRequestWithContainer Container(
-        this IBlobRequestWithConnectionString request,
+    public static IBlobContainer Container(
+        this IBlobStorageAccount request,
         string name)
     {
         var q = (BlobRequest<None, None>)request;
@@ -45,7 +45,7 @@ public static class BlobRequestBuilderExtensions
     }
 
     public static async Task<CreateContainerResponse> CreateContainerIfNotExistsAsync(
-        this IBlobRequestWithContainer request)
+        this IBlobContainer request)
     {
         var q = (BlobRequest<None, None>)request;
 
@@ -57,7 +57,7 @@ public static class BlobRequestBuilderExtensions
     }
 
     public static async Task<DeleteContainerResponse> DeleteContainerAsync(
-        this IBlobRequestWithContainer request)
+        this IBlobContainer request)
     {
 		var q = (BlobRequest<None, None>)request;
 
@@ -68,14 +68,14 @@ public static class BlobRequestBuilderExtensions
         return new();
 	}
 
-	public static IBlockBlobRequest BlockBlobs(
-        this IBlobRequestWithContainer request) => (BlobRequest<None, None>)request with
+	public static IBlockBlob BlockBlobs(
+        this IBlobContainer request) => (BlobRequest<None, None>)request with
         {
             BlobType = BlobType.BlockBlob
         };
 
-    public static IBlockBlobRequestWithSerialization JsonSerialization(
-        this IBlockBlobRequest request) => (BlobRequest<None, None>)request with
+    public static ISerializedBlockBlob JsonSerialization(
+        this IBlockBlob request) => (BlobRequest<None, None>)request with
         {
             Serializer = new JsonPipelineSerializer(),
 
@@ -86,8 +86,8 @@ public static class BlobRequestBuilderExtensions
             ContentTypeExtension = ".json"
         };
 
-    public static IBlockBlobRequestWithCompression GZipCompression(
-        this IBlockBlobRequestWithSerialization request) => (BlobRequest<None, None>)request with
+    public static ICompressedBlockBlob GZipCompression(
+        this ISerializedBlockBlob request) => (BlobRequest<None, None>)request with
         {
             Compressor = new GZipPipelineCompressor(),
 
@@ -98,8 +98,8 @@ public static class BlobRequestBuilderExtensions
             ContentEncodingExtension = ".gz"
         };
 
-    public static IBlockBlobRequestWithKeyMap<TKey> Key<TKey>(
-        this IBlockBlobRequestWithSerialization request,
+    public static IBlockBlobs<TKey> Key<TKey>(
+        this ISerializedBlockBlob request,
         Expression<Func<TKey, string>> map)
     {
         var q = (BlobRequest<None, None>)request;
@@ -109,17 +109,42 @@ public static class BlobRequestBuilderExtensions
             KeyMap = KeyMap<TKey>.Define(map, $"{q.ContentTypeExtension}{q.ContentEncodingExtension}")
         };
     }
-    public static IBlockBlobRequestWithFixedKey Key(
-        this IBlockBlobRequestWithSerialization request,
-        string key) => (BlobRequest<None, None>)request with
+
+    public static INamedBlockBlob Name(
+        this ISerializedBlockBlob request,
+        string name) => (BlobRequest<None, None>)request with
         {
-            Key = key
+            Name = name
         };
 
-    public static IBlockBlobRequestWithFixedKey Key(
-        this IBlockBlobRequestWithCompression request,
-        string key) => (BlobRequest<None, None>)request with
+    public static INamedBlockBlob Name(
+        this ICompressedBlockBlob request,
+        string name) => (BlobRequest<None, None>)request with
         {
-            Key = key
+            Name = name
+        };
+
+    public static IBlockBlobs<TKey, TValue> WithMetadata<TKey, TValue>(
+        this IBlockBlobs<TKey, TValue> request) => ((BlobRequest<TKey, TValue>)request) with
+        {
+            IncludeMetadata = true
+        };
+
+    public static IBlockBlobs<TKey, TValue> WithoutMetadata<TKey, TValue>(
+        this IBlockBlobs<TKey, TValue> request) => ((BlobRequest<TKey, TValue>)request) with
+        {
+            IncludeMetadata = false
+        };
+
+    public static IBlockBlob<TValue> WithMetadata<TValue>(
+        this IBlockBlob<TValue> request) => ((BlobRequest<None, TValue>)request) with
+        {
+            IncludeMetadata = true
+        };
+
+    public static IBlockBlob<TValue> WithoutMetadata<TValue>(
+        this IBlockBlob<TValue> request) => ((BlobRequest<None, TValue>)request) with
+        {
+            IncludeMetadata = false
         };
 }

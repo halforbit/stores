@@ -36,7 +36,7 @@ public class BlobIntegrationTests
                 .BlockBlobs()
                 .JsonSerialization()
                 //.GZipCompression()
-                .Key($"vehicles/{id:N}")
+                .Name($"vehicles/{id:N}")
                 .Value<Vehicle>();
 
             var existsA = await vehicleStore.BlobExistsAsync();
@@ -53,7 +53,7 @@ public class BlobIntegrationTests
 
             var putResult = await vehicleStore.UpsertBlobAsync(
                 value, 
-                new()
+                new Dictionary<string, string>
                 {
                     ["transaction"] = $"{Guid.NewGuid():N}"
                 });
@@ -127,7 +127,8 @@ public class BlobIntegrationTests
 				.BlockBlobs()
 				.JsonSerialization()
 				.Key<(Guid ProjectId, int SegmentId, Guid TableId)>(k => $"vehicles/{k.ProjectId:N}/{k.SegmentId}/{k.TableId:N}")
-				.Value<Vehicle>();
+				.Value<Vehicle>()
+				.WithMetadata();
 
 			var existsA = await vehiclesStore.BlobExistsAsync(id);
 
@@ -144,7 +145,7 @@ public class BlobIntegrationTests
 			var putResult = await vehiclesStore.UpsertBlobAsync(
 				id,
 				value,
-				new()
+				new Dictionary<string, string>
 				{
 					["transaction"] = $"{Guid.NewGuid():N}"
 				});
@@ -242,7 +243,7 @@ public class BlobIntegrationTests
 			var putResult = await vehiclesStore.UpsertBlobAsync(
 				id,
 				value,
-				new()
+				new Dictionary<string, string>
 				{
 					["transaction"] = $"{Guid.NewGuid():N}"
 				});

@@ -4,21 +4,21 @@ public interface IBlobRequest
 {
 }
 
-public interface IBlobRequestWithConnectionString /*: IBlobRequest*/
+public interface IBlobStorageAccount /*: IBlobRequest*/
 {
     //internal string? _ConnectionString { get; }
 }
 
-public interface IBlobRequestWithContainer /*: IBlobRequestWithConnectionString*/
+public interface IBlobContainer /*: IBlobRequestWithConnectionString*/
 {
     //internal string? _ContainerName { get; }
 
     //internal BlobContainerClient? BlobContainerClient { get; }
 }
 
-public interface IBlockBlobRequest /*: IBlobRequestWithContainer*/ { }
+public interface IBlockBlob /*: IBlobRequestWithContainer*/ { }
 
-public interface IBlockBlobRequestWithSerialization /*: IBlobRequestWithContainer*/
+public interface ISerializedBlockBlob /*: IBlobRequestWithContainer*/
 {
     //internal IBlockBlobSerializer? Serializer { get; }
 
@@ -27,7 +27,7 @@ public interface IBlockBlobRequestWithSerialization /*: IBlobRequestWithContaine
     //internal string? ContentTypeExtension { get; }
 }
 
-public interface IBlockBlobRequestWithCompression /*: IBlockBlobRequestWithSerialization*/
+public interface ICompressedBlockBlob /*: IBlockBlobRequestWithSerialization*/
 {
     //internal IBlockBlobCompressor? Compressor { get; }
 
@@ -36,21 +36,21 @@ public interface IBlockBlobRequestWithCompression /*: IBlockBlobRequestWithSeria
     //internal string? ContentEncodingExtension { get; }
 }
 
-public interface IBlockBlobRequestWithFixedKey /*: IBlockBlobRequestWithCompression*/
+public interface INamedBlockBlob /*: IBlockBlobRequestWithCompression*/
 {
     //internal string? Key { get; }
 
-    IBlockBlobRequestWithSingleValue<TValue> Value<TValue>();
+    IBlockBlob<TValue> Value<TValue>();
 }
 
-public interface IBlockBlobRequestWithSingleValue<TValue> /*: IBlockBlobRequestWithFixedKey*/ { }
+public interface IBlockBlob<TValue> /*: IBlockBlobRequestWithFixedKey*/ { }
 
-public interface IBlockBlobRequestWithKeyMap<TKey> /*: IBlockBlobRequest*/
+public interface IBlockBlobs<TKey> /*: IBlockBlobRequest*/
 {
     //internal KeyMap<TKey>? KeyMap { get; }
 
-    IBlockBlobRequestWithKeyMapValue<TKey, TValue> Value<TValue>();
+    IBlockBlobs<TKey, TValue> Value<TValue>();
 }
 
-public interface IBlockBlobRequestWithKeyMapValue<TKey, TValue> /*: IBlockBlobRequest*/ { }
+public interface IBlockBlobs<TKey, TValue> /*: IBlockBlobRequest*/ { }
 

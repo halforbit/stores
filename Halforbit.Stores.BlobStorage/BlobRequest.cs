@@ -5,7 +5,7 @@ namespace Halforbit.Stores;
 
 public static class BlobRequest
 {
-    public static IBlobRequestWithConnectionString ConnectionString(string connectionString)
+    public static IBlobStorageAccount ConnectionString(string connectionString)
     {
         return new BlobRequest<None, None>
         {
@@ -15,15 +15,15 @@ public static class BlobRequest
 }
 
 record BlobRequest<TKey, TValue> :
-    IBlobRequestWithConnectionString,
-    IBlobRequestWithContainer,
-    IBlockBlobRequest,
-    IBlockBlobRequestWithSerialization,
-    IBlockBlobRequestWithCompression,
-    IBlockBlobRequestWithFixedKey,
-    IBlockBlobRequestWithSingleValue<TValue>,
-    IBlockBlobRequestWithKeyMap<TKey>,
-    IBlockBlobRequestWithKeyMapValue<TKey, TValue>
+    IBlobStorageAccount,
+    IBlobContainer,
+    IBlockBlob,
+    ISerializedBlockBlob,
+    ICompressedBlockBlob,
+    INamedBlockBlob,
+    IBlockBlob<TValue>,
+    IBlockBlobs<TKey>,
+    IBlockBlobs<TKey, TValue>
 {
     public Tracer? Tracer { get; init; }
 
@@ -53,7 +53,9 @@ record BlobRequest<TKey, TValue> :
 
     public string? ContentEncodingExtension { get; init; }
 
-    public string? Key { get; init; }
+    public bool IncludeMetadata { get; init; }
+
+    public string? Name { get; init; }
 
     public KeyMap<TKey>? KeyMap { get; init; }
 
@@ -75,11 +77,12 @@ record BlobRequest<TKey, TValue> :
             CompressionStrategy = CompressionStrategy,
             ContentEncoding = ContentEncoding,
             ContentEncodingExtension = ContentEncodingExtension,
-            Key = Key,
+            IncludeMetadata = IncludeMetadata,
+            Name = Name,
         };
     }
 
-    IBlockBlobRequestWithSingleValue<TValue1> IBlockBlobRequestWithFixedKey.Value<TValue1>()
+    IBlockBlob<TValue1> INamedBlockBlob.Value<TValue1>()
     {
         return new BlobRequest<None, TValue1>
         {
@@ -97,11 +100,12 @@ record BlobRequest<TKey, TValue> :
             CompressionStrategy = CompressionStrategy,
             ContentEncoding = ContentEncoding,
             ContentEncodingExtension = ContentEncodingExtension,
-            Key = Key,
+            IncludeMetadata = IncludeMetadata,
+            Name = Name,
         };
     }
 
-    IBlockBlobRequestWithKeyMapValue<TKey, TValue1> IBlockBlobRequestWithKeyMap<TKey>.Value<TValue1>()
+    IBlockBlobs<TKey, TValue1> IBlockBlobs<TKey>.Value<TValue1>()
     {
         return new BlobRequest<TKey, TValue1>
         {
@@ -119,6 +123,7 @@ record BlobRequest<TKey, TValue> :
             CompressionStrategy = CompressionStrategy,
             ContentEncoding = ContentEncoding,
             ContentEncodingExtension = ContentEncodingExtension,
+            IncludeMetadata = IncludeMetadata,
             KeyMap = KeyMap
         };
     }
