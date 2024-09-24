@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Halforbit.Stores.BlobStorage\Halforbit.Stores.BlobStorage.csproj" />
+    <ProjectReference Include="..\Halforbit.Stores.MessagePack\Halforbit.Stores.MessagePack.csproj" />
   </ItemGroup>
 
   <ItemGroup>

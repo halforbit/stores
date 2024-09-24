@@ -1,3 +1,4 @@
+using MessagePack;
 using Microsoft.Extensions.Configuration;
 
 namespace Halforbit.Stores.Tests;
@@ -32,9 +33,11 @@ public class BlobIntegrationTests
                 Model = "Focus"
             };
 
+			await MessagePackSerializer.SerializeAsync(new MemoryStream(), value);
+
             var vehicleStore = container
                 .BlockBlobs()
-                .JsonSerialization()
+                .MessagePackSerialization()
                 //.GZipCompression()
                 .Name($"vehicles/{id:N}")
                 .Value<Vehicle>();
@@ -125,7 +128,7 @@ public class BlobIntegrationTests
 
 			var vehiclesStore = container
 				.BlockBlobs()
-				.JsonSerialization()
+				.MessagePackSerialization()
 				.Key<(Guid ProjectId, int SegmentId, Guid TableId)>(k => $"vehicles/{k.ProjectId:N}/{k.SegmentId}/{k.TableId:N}")
 				.Value<Vehicle>()
 				.WithMetadata();
@@ -223,7 +226,7 @@ public class BlobIntegrationTests
 
 			var vehiclesStore = container
 				.BlockBlobs()
-				.JsonSerialization()
+				.MessagePackSerialization()
 				//.GZipCompression()
 				.Key<Guid>(k => $"vehicles/{k:N}")
 				.Value<Vehicle>();
@@ -287,14 +290,19 @@ public class BlobIntegrationTests
 		}
 	}
 
-	record Vehicle
+	[MessagePackObject]
+	public record Vehicle
     {
+		[Key(0)]
         public required Guid VehicleId { get; init; }
 
+        [Key(1)]
         public required int Year { get; init; }
 
+        [Key(2)]
         public required string Make { get; init; }
 
+        [Key(3)]
         public required string Model { get; init; }
     }
 }

@@ -9,7 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Halforbit.Stores.BlobStorag
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Halforbit.Stores.BlobStorage.Benchmarks", "Halforbit.Stores.BlobStorage.Benchmarks\Halforbit.Stores.BlobStorage.Benchmarks.csproj", "{9D45C17E-F2E0-488A-AF47-93E60A288BCE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Halforbit.Stores", "Halforbit.Stores\Halforbit.Stores.csproj", "{C70855EC-E47E-4195-B30C-89B3FF37779A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Halforbit.Stores", "Halforbit.Stores\Halforbit.Stores.csproj", "{C70855EC-E47E-4195-B30C-89B3FF37779A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Halforbit.Stores.MessagePack", "Halforbit.Stores.MessagePack\Halforbit.Stores.MessagePack.csproj", "{B0D40535-824E-46C4-AEB3-B8CD983CFA0F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{C70855EC-E47E-4195-B30C-89B3FF37779A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C70855EC-E47E-4195-B30C-89B3FF37779A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C70855EC-E47E-4195-B30C-89B3FF37779A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0D40535-824E-46C4-AEB3-B8CD983CFA0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0D40535-824E-46C4-AEB3-B8CD983CFA0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0D40535-824E-46C4-AEB3-B8CD983CFA0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0D40535-824E-46C4-AEB3-B8CD983CFA0F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

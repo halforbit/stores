@@ -144,8 +144,6 @@ public static class BlobRequestOperationExtensions
         TValue value,
         IDictionary<string, string>? metadata = null)
     {        
-        if (q.Serializer is null) throw new ArgumentNullException("Serializer is not specified.");
-
         if (q.ContentSerializer is null) throw new ArgumentNullException("Serializer is not specified.");
         
         using var span = q.Tracer?.StartActiveSpan(nameof(UpsertBlobAsync));

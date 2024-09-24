@@ -20,45 +20,6 @@ public record DeleteContainerResponse
 {
 }
 
-public interface IPipelineSerializer
-{
-    void Serialize<TValue>(Stream stream, TValue value);
-
-    TValue Deserialize<TValue>(Stream stream);
-}
-
-public class JsonPipelineSerializer : IPipelineSerializer
-{
-    public void Serialize<TValue>(
-        Stream stream,
-        TValue value) => System.Text.Json.JsonSerializer.Serialize(stream, value);
-
-    public TValue Deserialize<TValue>(Stream stream) => 
-        System.Text.Json.JsonSerializer.Deserialize<TValue>(stream) ?? throw new Exception("Deserialized a null value.");
-}
-
-public class GZipPipelineCompressor : IPipelineCompressor
-{
-    public Stream Compress(
-        Stream stream)
-    {
-        return new GZipStream(stream, CompressionMode.Compress);
-    }
-
-    public Stream Decompress(
-        Stream stream)
-    {
-        return new GZipStream(stream, CompressionMode.Decompress);
-    }
-}
-
-public interface IPipelineCompressor 
-{
-    public Stream Compress(Stream stream);
-
-    public Stream Decompress(Stream stream);
-}
-
 //
 
 public interface IContentSerializer
