@@ -1,6 +1,6 @@
 ﻿namespace Halforbit.Stores;
 
-public static class BlobRequestBuilderExtensions
+public static class BlobRequestMessagePackBuilderExtensions
 {
     public static ISerializedBlockBlob MessagePackSerialization(
         this IBlockBlob request) => (BlobRequest<None, None>)request with
