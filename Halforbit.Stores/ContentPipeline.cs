@@ -21,56 +21,80 @@ public class ContentPipeline
         var writer = pipe.Writer;
         var reader = pipe.Reader;
 
-        // Start the serialization process
         var writeTask = WriteSerializedDataAsync(content, writer);
 
-        // Start the compression and network stream write process
         var readTask = ReadCompressAndWriteToStreamAsync(reader, stream);
 
-        // Wait for both tasks to complete
         await Task.WhenAll(writeTask, readTask);
     }
 
     async Task WriteSerializedDataAsync<T>(T content, PipeWriter writer)
     {
-        await _serializer.SerializeAsync(writer, content);
+        Exception? exception = null;
+
+        try
+        {
+            await _serializer.SerializeAsync(writer, content);
+
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+
+            throw;
+        }
+        finally
+        {
+            await writer.CompleteAsync(exception);
+        }
     }
 
     async Task ReadCompressAndWriteToStreamAsync(PipeReader reader, Stream stream)
     {
         var outputStream = stream;
 
-        // Apply compression if available
         if (_compressionStrategy != null)
         {
             outputStream = _compressionStrategy.Compress(outputStream);
         }
 
-        while (true)
+        Exception? exception = null;
+
+        try
         {
-            var result = await reader.ReadAsync();
-            var buffer = result.Buffer;
-
-            if (buffer.IsEmpty && result.IsCompleted)
+            while (true)
             {
-                break;
-            }
+                var result = await reader.ReadAsync();
+                var buffer = result.Buffer;
 
-            try
-            {
-                foreach (var segment in buffer)
+                if (buffer.IsEmpty && result.IsCompleted)
                 {
-                    // Write to the final output stream (compressed or uncompressed)
-                    await outputStream.WriteAsync(segment);
+                    break;
+                }
+
+                try
+                {
+                    foreach (var segment in buffer)
+                    {
+                        await outputStream.WriteAsync(segment);
+                    }
+                }
+                finally
+                {
+                    reader.AdvanceTo(buffer.End);
                 }
             }
-            finally
-            {
-                reader.AdvanceTo(buffer.End);
-            }
         }
+        catch (Exception ex)
+        {
+            exception = ex;
 
-        await reader.CompleteAsync();
+            throw;
+        }
+        finally
+        {
+            await reader.CompleteAsync(exception);
+        }
     }
 
     public async Task<T?> ReadAndDeserializeAsync<T>(Stream stream)
@@ -79,10 +103,8 @@ public class ContentPipeline
         var writer = pipe.Writer;
         var reader = pipe.Reader;
 
-        // Start reading from the network stream
         var readTask = ReadFromStreamAsync(writer, stream);
 
-        // Start the deserialization process
         var deserializeTask = ReadAndDeserializeAsync<T>(reader);
 
         await Task.WhenAll(readTask, deserializeTask);
@@ -93,31 +115,57 @@ public class ContentPipeline
     {
         var inputStream = stream;
 
-        // Apply decompression if available
         if (_compressionStrategy != null)
         {
             inputStream = _compressionStrategy.Decompress(inputStream);
         }
 
-        while (true)
+        Exception? exception = null;
+
+        try
         {
-            var memory = writer.GetMemory();
-            int bytesRead = await inputStream.ReadAsync(memory);
-
-            if (bytesRead == 0)
+            while (true)
             {
-                break;
+                var memory = writer.GetMemory();
+                int bytesRead = await inputStream.ReadAsync(memory);
+
+                if (bytesRead == 0)
+                {
+                    break;
+                }
+
+                writer.Advance(bytesRead);
             }
-
-            // Advance the writer to the position that contains the data read
-            writer.Advance(bytesRead);
         }
+        catch (Exception ex)
+        {
+            exception = ex;
 
-        await writer.CompleteAsync();
+            throw;
+        }
+        finally
+        {
+            await writer.CompleteAsync(exception);
+        }
     }
 
     async Task<T?> ReadAndDeserializeAsync<T>(PipeReader reader)
     {
-        return await _serializer.DeserializeAsync<T>(reader);
+        Exception? exception = null;
+
+        try
+        {
+            return await _serializer.DeserializeAsync<T>(reader);
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+            
+            throw;
+        }
+        finally
+        {
+            await reader.CompleteAsync(exception);
+        }
     }
 }

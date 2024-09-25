@@ -5,12 +5,12 @@ namespace Halforbit.Stores.Tests;
 
 public class BlobIntegrationTests
 {
-	string ConnectionString => new ConfigurationBuilder()
+	static string ConnectionString => new ConfigurationBuilder()
 		.AddUserSecrets<BlobIntegrationTests>()
 		.Build()
-		.GetConnectionString("IntegrationTest");
+		.GetConnectionString("IntegrationTest")!;
 
-	[Fact]
+    [Fact]
     public async Task Single_Success()
     {
         var containerName = $"test-container-{Guid.NewGuid():N}";
@@ -290,7 +290,42 @@ public class BlobIntegrationTests
 		}
 	}
 
-	[MessagePackObject]
+    [Fact]
+    public async Task SerializationError_Throws()
+    {
+        var containerName = $"test-container-{Guid.NewGuid():N}";
+
+        var container = BlobRequest
+            .ConnectionString(ConnectionString)
+            .Container(containerName);
+
+        await container.CreateContainerIfNotExistsAsync();
+
+        try
+        {
+            var id = Guid.NewGuid();
+
+            var vehicleStore = container
+                .BlockBlobs()
+                .MessagePackSerialization()
+                .Name($"not-serializable/{id:N}")
+                .Value<NotSerializable>();
+
+            await Assert.ThrowsAsync<MessagePackSerializationException>(async () =>
+            {
+                await vehicleStore.UpsertBlobAsync(new NotSerializable
+                {
+                    Message = "Not serializable."
+                });
+            });
+        }
+        finally
+        {
+            await container.DeleteContainerAsync();
+        }
+    }
+
+    [MessagePackObject]
 	public record Vehicle
     {
 		[Key(0)]
@@ -304,5 +339,10 @@ public class BlobIntegrationTests
 
         [Key(3)]
         public required string Model { get; init; }
-    }
+	}
+
+	public record NotSerializable
+	{
+		public required string Message { get; init; }
+	}
 }
