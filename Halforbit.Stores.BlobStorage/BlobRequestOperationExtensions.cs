@@ -45,8 +45,8 @@ public static class BlobRequestOperationExtensions
 		if (q.BlobContainerClient is null) throw new ArgumentNullException(nameof(q.BlobContainerClient));
         
         await foreach (var blobItem in q.BlobContainerClient.GetBlobsAsync(
-            BlobTraits.Metadata,
-            BlobStates.Version,
+            q.IncludeMetadata ? BlobTraits.Metadata : default,
+            q.IncludeVersions ? BlobStates.Version : default,
             prefix))
         {
             if (q.KeyMap is not null && 
@@ -284,6 +284,13 @@ public static class BlobRequestOperationExtensions
         span?.SetAttribute("BlobName", blobName);
 
         var blobClient = q.BlobContainerClient.GetBlockBlobClient(blobName);
+
+        if (q.VersionId is not null)
+        {
+            blobClient = blobClient.WithVersion(q.VersionId);
+
+            span?.SetAttribute("VersionId", q.VersionId);
+        }
 
         Response<BlobDownloadInfo> response;
 

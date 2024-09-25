@@ -1,5 +1,6 @@
 ﻿using Azure.Storage.Blobs;
 using OpenTelemetry.Trace;
+using System.Security;
 
 namespace Halforbit.Stores;
 
@@ -49,7 +50,11 @@ record BlobRequest<TKey, TValue> :
 
     public bool IncludeMetadata { get; init; }
 
+    public bool IncludeVersions { get; init; }
+
     public string? Name { get; init; }
+
+    public string? VersionId { get; init; }
 
     public KeyMap<TKey>? KeyMap { get; init; }
 
@@ -69,7 +74,9 @@ record BlobRequest<TKey, TValue> :
             ContentEncoding = ContentEncoding,
             ContentEncodingExtension = ContentEncodingExtension,
             IncludeMetadata = IncludeMetadata,
+            IncludeVersions = IncludeVersions,
             Name = Name,
+            VersionId = VersionId,
         };
     }
 
@@ -89,7 +96,9 @@ record BlobRequest<TKey, TValue> :
             ContentEncoding = ContentEncoding,
             ContentEncodingExtension = ContentEncodingExtension,
             IncludeMetadata = IncludeMetadata,
+            IncludeVersions = IncludeVersions,
             Name = Name,
+            VersionId = VersionId,
         };
     }
 
@@ -109,6 +118,9 @@ record BlobRequest<TKey, TValue> :
             ContentEncoding = ContentEncoding,
             ContentEncodingExtension = ContentEncodingExtension,
             IncludeMetadata = IncludeMetadata,
+            IncludeVersions = IncludeVersions,
+            Name = Name,
+            VersionId = VersionId,
             KeyMap = KeyMap
         };
     }

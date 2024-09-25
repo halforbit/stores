@@ -38,7 +38,6 @@ public class BlobIntegrationTests
             var vehicleStore = container
                 .BlockBlobs()
                 .MessagePackSerialization()
-                //.GZipCompression()
                 .Name($"vehicles/{id:N}")
                 .Value<Vehicle>();
 
@@ -227,9 +226,10 @@ public class BlobIntegrationTests
 			var vehiclesStore = container
 				.BlockBlobs()
 				.MessagePackSerialization()
-				//.GZipCompression()
 				.Key<Guid>(k => $"vehicles/{k:N}")
-				.Value<Vehicle>();
+				.Value<Vehicle>()
+				.WithMetadata()
+				.WithVersions();
 
 			var existsA = await vehiclesStore.BlobExistsAsync(id);
 
@@ -243,13 +243,18 @@ public class BlobIntegrationTests
 
 			Assert.Null(getA);
 
-			var putResult = await vehiclesStore.UpsertBlobAsync(
+			var transactionId = $"{Guid.NewGuid():N}";
+
+            var putResult = await vehiclesStore.UpsertBlobAsync(
 				id,
 				value,
 				new Dictionary<string, string>
 				{
-					["transaction"] = $"{Guid.NewGuid():N}"
+					["transaction"] = transactionId
 				});
+
+			var versionId = putResult.VersionId ??
+				throw new ArgumentNullException(nameof(PutResult.VersionId));
 
 			Assert.False(string.IsNullOrWhiteSpace(putResult.ETag));
 
@@ -263,7 +268,14 @@ public class BlobIntegrationTests
 
 			Assert.NotNull(getB);
 
-			var blobs = new List<Blob>();
+			Assert.Equal(value, getB.Value);
+
+            Assert.Equal(
+                transactionId,
+                getB.Metadata?["transaction"] ??
+                    throw new ArgumentNullException(nameof(Blob.Metadata)));
+
+            var blobs = new List<Blob>();
 
 			await foreach (var b in vehiclesStore.EnumerateBlobsAsync())
 			{
@@ -272,7 +284,75 @@ public class BlobIntegrationTests
 
 			Assert.Single(blobs);
 
-			var deleteB = await vehiclesStore.DeleteBlobAsync(id);
+			Assert.Equal(
+				transactionId,
+				blobs.Single().Metadata?["transaction"] ?? 
+					throw new ArgumentNullException(nameof(Blob.Metadata)));
+
+			var transactionId2 = $"{Guid.NewGuid():N}";
+
+			var value2 = value with
+			{ 
+				Year = 2022
+			};
+
+			var putResult2 = await vehiclesStore.UpsertBlobAsync(
+				id, 
+				value2,
+				new Dictionary<string, string>
+				{
+					["transaction"] = transactionId2
+				});
+
+			var versionId2 = putResult2.VersionId ??
+                throw new ArgumentNullException(nameof(PutResult.VersionId));
+            
+            Assert.NotEqual(versionId, versionId2);
+
+			blobs.Clear();
+
+            await foreach (var b in vehiclesStore.EnumerateBlobsAsync())
+            {
+                blobs.Add(b);
+            }
+
+            Assert.Equal(2, blobs.Count);
+
+			Assert.Equal(versionId, blobs[0].VersionId);
+
+			Assert.Equal(transactionId, blobs[0].Metadata?["transaction"] ??
+				throw new ArgumentNullException(nameof(Blob.Metadata)));
+
+			Assert.Equal(versionId2, blobs[1].VersionId);
+
+            Assert.Equal(transactionId2, blobs[1].Metadata?["transaction"] ??
+				throw new ArgumentNullException(nameof(Blob.Metadata)));
+
+			var currentBlob = await vehiclesStore.GetBlobOrNullAsync(id);
+
+			Assert.NotNull(currentBlob);
+
+			Assert.Equal(value2, currentBlob.Value);
+
+			Assert.Equal(versionId2, currentBlob.VersionId);
+
+            Assert.Equal(transactionId2, currentBlob.Metadata?["transaction"] ??
+                throw new ArgumentNullException(nameof(Blob.Metadata)));
+
+			var priorBlob = await vehiclesStore
+				.Version(versionId)
+				.GetBlobOrNullAsync(id);
+
+			Assert.NotNull(priorBlob);
+
+            Assert.Equal(value, currentBlob.Value);
+
+            Assert.Equal(versionId, currentBlob.VersionId);
+
+            Assert.Equal(transactionId, currentBlob.Metadata?["transaction"] ??
+                throw new ArgumentNullException(nameof(Blob.Metadata)));
+
+            var deleteB = await vehiclesStore.DeleteBlobAsync(id);
 
 			Assert.True(deleteB);
 

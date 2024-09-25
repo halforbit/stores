@@ -29,7 +29,7 @@
   <ItemGroup>
     <PackageReference Include="MessagePack" Version="2.5.172" />
   </ItemGroup>
-
+  
   <ItemGroup>
     <ProjectReference Include="..\Halforbit.Stores.BlobStorage\Halforbit.Stores.BlobStorage.csproj" />
   </ItemGroup>

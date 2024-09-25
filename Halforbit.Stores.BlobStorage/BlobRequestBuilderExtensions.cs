@@ -127,4 +127,23 @@ public static class BlobRequestBuilderExtensions
         {
             IncludeMetadata = false
         };
+
+    public static IBlockBlobs<TKey, TValue> WithVersions<TKey, TValue>(
+        this IBlockBlobs<TKey, TValue> request) => ((BlobRequest<TKey, TValue>)request) with
+        {
+            IncludeVersions = true
+        };
+
+    public static IBlockBlobs<TKey, TValue> WithoutVersions<TKey, TValue>(
+        this IBlockBlobs<TKey, TValue> request) => ((BlobRequest<TKey, TValue>)request) with
+        {
+            IncludeVersions = false
+        };
+
+    public static IBlockBlobs<TKey, TValue> Version<TKey, TValue>(
+        this IBlockBlobs<TKey, TValue> request,
+        string versionId) => ((BlobRequest<TKey, TValue>)request) with
+        {
+            VersionId = versionId
+        };
 }
