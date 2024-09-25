@@ -345,11 +345,11 @@ public class BlobIntegrationTests
 
 			Assert.NotNull(priorBlob);
 
-            Assert.Equal(value, currentBlob.Value);
+            Assert.Equal(value, priorBlob.Value);
 
-            Assert.Equal(versionId, currentBlob.VersionId);
+            Assert.Equal(versionId, priorBlob.VersionId);
 
-            Assert.Equal(transactionId, currentBlob.Metadata?["transaction"] ??
+            Assert.Equal(transactionId, priorBlob.Metadata?["transaction"] ??
                 throw new ArgumentNullException(nameof(Blob.Metadata)));
 
             var deleteB = await vehiclesStore.DeleteBlobAsync(id);
