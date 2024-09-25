@@ -18,18 +18,6 @@ public static class BlobRequestBuilderExtensions
         };
     }
 
-    public static IBlobStorageAccount HttpClientFactory(
-        this IBlobStorageAccount request,
-        IHttpClientFactory httpClientFactory)
-    {
-        var q = (BlobRequest<None, None>)request;
-
-        return q with
-        { 
-            HttpClientFactory = httpClientFactory
-        };
-    }
-
     public static IBlobContainer Container(
         this IBlobStorageAccount request,
         string name)
@@ -44,7 +32,7 @@ public static class BlobRequestBuilderExtensions
         };
     }
 
-    public static async Task<CreateContainerResponse> CreateContainerIfNotExistsAsync(
+    public static async Task CreateContainerIfNotExistsAsync(
         this IBlobContainer request)
     {
         var q = (BlobRequest<None, None>)request;
@@ -52,11 +40,9 @@ public static class BlobRequestBuilderExtensions
         if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient has not been created.");
 
         var response = await q.BlobContainerClient.CreateIfNotExistsAsync();
-
-        return new();
     }
 
-    public static async Task<DeleteContainerResponse> DeleteContainerAsync(
+    public static async Task DeleteContainerAsync(
         this IBlobContainer request)
     {
 		var q = (BlobRequest<None, None>)request;
@@ -64,21 +50,17 @@ public static class BlobRequestBuilderExtensions
 		if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient has not been created.");
 
         await q.BlobContainerClient.DeleteIfExistsAsync();
-
-        return new();
 	}
 
-	public static IBlockBlob BlockBlobs(
+	public static IBlockBlobs BlockBlobs(
         this IBlobContainer request) => (BlobRequest<None, None>)request with
         {
             BlobType = BlobType.BlockBlob
         };
 
-    public static ISerializedBlockBlob JsonSerialization(
-        this IBlockBlob request) => (BlobRequest<None, None>)request with
+    public static ISerializedBlockBlobs JsonSerialization(
+        this IBlockBlobs request) => (BlobRequest<None, None>)request with
         {
-            Serializer = new JsonPipelineSerializer(),
-
             ContentSerializer = new JsonSerializerStrategy(),
 
             ContentType = "application/json",
@@ -86,12 +68,10 @@ public static class BlobRequestBuilderExtensions
             ContentTypeExtension = ".json"
         };
 
-    public static ICompressedBlockBlob GZipCompression(
-        this ISerializedBlockBlob request) => (BlobRequest<None, None>)request with
+    public static ICompressedBlockBlobs GZipCompression(
+        this ISerializedBlockBlobs request) => (BlobRequest<None, None>)request with
         {
-            Compressor = new GZipPipelineCompressor(),
-
-            CompressionStrategy = new GzipCompressionStrategy(),
+            CompressionStrategy = new GZipCompressionStrategy(),
 
             ContentEncoding = "gzip",
 
@@ -99,7 +79,7 @@ public static class BlobRequestBuilderExtensions
         };
 
     public static IBlockBlobs<TKey> Key<TKey>(
-        this ISerializedBlockBlob request,
+        this ISerializedBlockBlobs request,
         Expression<Func<TKey, string>> map)
     {
         var q = (BlobRequest<None, None>)request;
@@ -110,15 +90,15 @@ public static class BlobRequestBuilderExtensions
         };
     }
 
-    public static INamedBlockBlob Name(
-        this ISerializedBlockBlob request,
+    public static IBlockBlob Name(
+        this ISerializedBlockBlobs request,
         string name) => (BlobRequest<None, None>)request with
         {
             Name = name
         };
 
-    public static INamedBlockBlob Name(
-        this ICompressedBlockBlob request,
+    public static IBlockBlob Name(
+        this ICompressedBlockBlobs request,
         string name) => (BlobRequest<None, None>)request with
         {
             Name = name

@@ -3,6 +3,7 @@
 namespace Halforbit.Stores;
 
 public class RecyclableDictionaryManager<TKey, TValue>
+    where TKey: notnull
 {
     readonly ConcurrentBag<Dictionary<TKey, TValue>> _pool;
 

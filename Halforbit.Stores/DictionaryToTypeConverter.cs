@@ -47,7 +47,10 @@ public static class DictionaryToTypeConverter<TObject>
 
         foreach (var parameter in constructor.Parameters)
         {
-            var key = parameter.Name.ToLower();
+            var key = parameter.Name?.ToLower() ?? 
+                throw new ArgumentNullException(
+                    $"Constructor parameter `Name` is null " +
+                    $"for type `{typeInfo.Name}`.");
 
             var parameterType = parameter.ParameterType;
 
@@ -109,7 +112,7 @@ public static class DictionaryToTypeConverter<TObject>
         return null;
     }
 
-    static object ParseValue(Type type, string? value, int majorDigits)
+    static object? ParseValue(Type type, string? value, int majorDigits)
     {
         if (value is null)
         {

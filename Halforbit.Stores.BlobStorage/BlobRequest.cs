@@ -17,17 +17,15 @@ public static class BlobRequest
 record BlobRequest<TKey, TValue> :
     IBlobStorageAccount,
     IBlobContainer,
+    IBlockBlobs,
+    ISerializedBlockBlobs,
+    ICompressedBlockBlobs,
     IBlockBlob,
-    ISerializedBlockBlob,
-    ICompressedBlockBlob,
-    INamedBlockBlob,
     IBlockBlob<TValue>,
     IBlockBlobs<TKey>,
     IBlockBlobs<TKey, TValue>
 {
     public Tracer? Tracer { get; init; }
-
-    public IHttpClientFactory? HttpClientFactory { get; init; }
 
     public string? _ConnectionString { get; init; }
 
@@ -37,15 +35,11 @@ record BlobRequest<TKey, TValue> :
 
     public BlobType BlobType { get; init; }
 
-    public IPipelineSerializer? Serializer { get; init; }
-
     public IContentSerializer? ContentSerializer { get; init; }
 
     public string? ContentType { get; init; }
 
     public string? ContentTypeExtension { get; init; }
-
-    public IPipelineCompressor? Compressor { get; init; }
 
     public ICompressionStrategy? CompressionStrategy { get; init; }
 
@@ -64,16 +58,13 @@ record BlobRequest<TKey, TValue> :
         return new BlobRequest<TK, TV>
         {
             Tracer = Tracer,
-            HttpClientFactory = HttpClientFactory,
             _ConnectionString = _ConnectionString,
             _ContainerName = _ContainerName,
             BlobContainerClient = BlobContainerClient,
             BlobType = BlobType,
-            Serializer = Serializer,
             ContentSerializer = ContentSerializer,
             ContentType = ContentType,
             ContentTypeExtension = ContentTypeExtension,
-            Compressor = Compressor,
             CompressionStrategy = CompressionStrategy,
             ContentEncoding = ContentEncoding,
             ContentEncodingExtension = ContentEncodingExtension,
@@ -82,21 +73,18 @@ record BlobRequest<TKey, TValue> :
         };
     }
 
-    IBlockBlob<TValue1> INamedBlockBlob.Value<TValue1>()
+    IBlockBlob<TValue1> IBlockBlob.Value<TValue1>()
     {
         return new BlobRequest<None, TValue1>
         {
             Tracer = Tracer,
-			HttpClientFactory = HttpClientFactory,
 			_ConnectionString = _ConnectionString,
             _ContainerName = _ContainerName,
             BlobContainerClient = BlobContainerClient,
             BlobType = BlobType,
-            Serializer = Serializer,
             ContentSerializer = ContentSerializer,
             ContentType = ContentType,
             ContentTypeExtension = ContentTypeExtension,
-            Compressor = Compressor,
             CompressionStrategy = CompressionStrategy,
             ContentEncoding = ContentEncoding,
             ContentEncodingExtension = ContentEncodingExtension,
@@ -110,16 +98,13 @@ record BlobRequest<TKey, TValue> :
         return new BlobRequest<TKey, TValue1>
         {
             Tracer = Tracer,
-			HttpClientFactory = HttpClientFactory,
 			_ConnectionString = _ConnectionString,
             _ContainerName = _ContainerName,
             BlobContainerClient = BlobContainerClient,
             BlobType = BlobType,
-            Serializer = Serializer,
             ContentSerializer = ContentSerializer,
             ContentType = ContentType,
             ContentTypeExtension = ContentTypeExtension,
-            Compressor = Compressor,
             CompressionStrategy = CompressionStrategy,
             ContentEncoding = ContentEncoding,
             ContentEncodingExtension = ContentEncodingExtension,

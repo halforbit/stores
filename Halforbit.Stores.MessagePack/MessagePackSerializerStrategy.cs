@@ -12,7 +12,7 @@ public class MessagePackSerializerStrategy : IContentSerializer
         await writer.CompleteAsync();
     }
 
-    public async Task<T> DeserializeAsync<T>(PipeReader reader)
+    public async Task<T?> DeserializeAsync<T>(PipeReader reader)
     {
         return await MessagePackSerializer.DeserializeAsync<T>(reader.AsStream());
     }

@@ -1,59 +1,6 @@
-﻿using System.IO.Compression;
-using System.IO.Pipelines;
-using System.Text.Json;
+﻿using System.IO.Pipelines;
 
 namespace Halforbit.Stores;
-
-public enum BlobType : byte
-{
-    Unknown = 0,
-    BlockBlob = 1,
-    AppendBlob = 2,
-    PageBlob = 3
-}
-
-public record CreateContainerResponse
-{
-}
-
-public record DeleteContainerResponse
-{
-}
-
-//
-
-public interface IContentSerializer
-{
-    Task SerializeAsync<T>(PipeWriter writer, T content);
-    Task<T> DeserializeAsync<T>(PipeReader reader);
-}
-
-public interface ICompressionStrategy
-{
-    Stream Compress(Stream output);
-    Stream Decompress(Stream input);
-}
-
-public class JsonSerializerStrategy : IContentSerializer
-{
-    public async Task SerializeAsync<T>(PipeWriter writer, T content)
-    {
-        await JsonSerializer.SerializeAsync(writer.AsStream(), content);
-        await writer.CompleteAsync();
-    }
-
-    public async Task<T> DeserializeAsync<T>(PipeReader reader)
-    {
-        return await JsonSerializer.DeserializeAsync<T>(reader.AsStream());
-    }
-}
-
-public class GzipCompressionStrategy : ICompressionStrategy
-{
-    public Stream Compress(Stream output) => new GZipStream(output, CompressionLevel.Fastest, leaveOpen: true);
-
-    public Stream Decompress(Stream input) => new GZipStream(input, CompressionMode.Decompress, leaveOpen: true);
-}
 
 public class ContentPipeline
 {
@@ -126,7 +73,7 @@ public class ContentPipeline
         await reader.CompleteAsync();
     }
 
-    public async Task<T> ReadAndDeserializeAsync<T>(Stream stream)
+    public async Task<T?> ReadAndDeserializeAsync<T>(Stream stream)
     {
         var pipe = new Pipe();
         var writer = pipe.Writer;
@@ -169,7 +116,7 @@ public class ContentPipeline
         await writer.CompleteAsync();
     }
 
-    async Task<T> ReadAndDeserializeAsync<T>(PipeReader reader)
+    async Task<T?> ReadAndDeserializeAsync<T>(PipeReader reader)
     {
         return await _serializer.DeserializeAsync<T>(reader);
     }

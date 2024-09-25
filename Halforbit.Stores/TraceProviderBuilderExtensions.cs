@@ -2,7 +2,7 @@ using OpenTelemetry.Trace;
 
 namespace Halforbit.Stores;
 
-public static class BuilderExtensions
+public static class TraceProviderBuilderExtensions
 {
 	public static TracerProviderBuilder AddHalforbitStoresInstrumentation(
 		this TracerProviderBuilder builder)

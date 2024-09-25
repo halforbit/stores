@@ -2,8 +2,8 @@
 
 public static class BlobRequestMessagePackBuilderExtensions
 {
-    public static ISerializedBlockBlob MessagePackSerialization(
-        this IBlockBlob request) => (BlobRequest<None, None>)request with
+    public static ISerializedBlockBlobs MessagePackSerialization(
+        this IBlockBlobs request) => (BlobRequest<None, None>)request with
         {
             ContentSerializer = new MessagePackSerializerStrategy(),
 

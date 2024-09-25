@@ -61,7 +61,7 @@ public static class DictionaryToTypeConverterX<T>
         return lambda.Compile();
     }
 
-    private static object ConvertStringToType(string value, Type targetType)
+    private static object? ConvertStringToType(string value, Type targetType)
     {
         if (targetType == typeof(string))
         {
