@@ -56,6 +56,8 @@ record BlobRequest<TKey, TValue> :
 
     public string? VersionId { get; init; }
 
+    public string? IfMatch { get; init; }
+
     public KeyMap<TKey>? KeyMap { get; init; }
 
     public BlobRequest<TK, TV> RecastTo<TK, TV>()
@@ -77,6 +79,7 @@ record BlobRequest<TKey, TValue> :
             IncludeVersions = IncludeVersions,
             Name = Name,
             VersionId = VersionId,
+            IfMatch = IfMatch,
         };
     }
 
@@ -99,6 +102,7 @@ record BlobRequest<TKey, TValue> :
             IncludeVersions = IncludeVersions,
             Name = Name,
             VersionId = VersionId,
+            IfMatch = IfMatch,
         };
     }
 
@@ -121,6 +125,7 @@ record BlobRequest<TKey, TValue> :
             IncludeVersions = IncludeVersions,
             Name = Name,
             VersionId = VersionId,
+            IfMatch = IfMatch,
             KeyMap = KeyMap
         };
     }

@@ -402,6 +402,56 @@ public class BlobIntegrationTests
         finally
         {
             await container.DeleteContainerAsync();
+		}
+	}
+
+	[Fact]
+	public async Task MatchETag_Success()
+	{
+        var containerName = $"test-container-{Guid.NewGuid():N}";
+
+        var container = BlobRequest
+            .ConnectionString(ConnectionString)
+            .Container(containerName);
+
+        await container.CreateContainerIfNotExistsAsync();
+
+        try
+        {
+            var id = Guid.NewGuid();
+
+            var value = new Vehicle
+            {
+                VehicleId = id,
+                Year = 1993,
+                Make = "Ford",
+                Model = "Focus"
+            };
+
+            var vehicleStore = container
+                .BlockBlobs()
+                .MessagePackSerialization()
+                .Key<Guid>(k => $"vehicles/{k:N}")
+                .Value<Vehicle>();
+
+            var putResult = await vehicleStore.UpsertBlobAsync(id, value);
+
+			var eTag = putResult.ETag;
+
+			await vehicleStore
+				.IfMatch(eTag)
+				.UpsertBlobAsync(id, value);
+
+			await Assert.ThrowsAsync<ConditionFailedException>(async () =>
+			{
+				await vehicleStore
+					.IfMatch(eTag)
+					.UpsertBlobAsync(id, value);
+			});
+        }
+        finally
+        {
+            await container.DeleteContainerAsync();
         }
     }
 

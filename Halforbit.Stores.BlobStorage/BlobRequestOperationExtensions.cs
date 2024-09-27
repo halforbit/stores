@@ -175,15 +175,28 @@ public static class BlobRequestOperationExtensions
 
         using (var _ = q.Tracer?.StartActiveSpan("Transmit"))
         {
-            blobInfo = await q.BlobContainerClient
-                .GetBlockBlobClient(blobName)
-                .UploadAsync(
-                    content: ms, 
-                    options: new()
-                    {
-                        HttpHeaders = blobHttpHeaders,
-                        Metadata = metadata
-                    });
+            try
+            {
+                blobInfo = await q.BlobContainerClient
+                    .GetBlockBlobClient(blobName)
+                    .UploadAsync(
+                        content: ms, 
+                        options: new()
+                        {
+                            HttpHeaders = blobHttpHeaders,
+                            Metadata = metadata, 
+                            Conditions = q.IfMatch is not null ? 
+                                new BlobRequestConditions
+                                {
+                                    IfMatch = new ETag(q.IfMatch), 
+                                } : 
+                                null
+                        });
+            }
+            catch (RequestFailedException rfex)
+            {
+                throw new ConditionFailedException();
+            }
         }
 
         var eTag = blobInfo.ETag.ToString();
