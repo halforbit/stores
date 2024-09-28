@@ -156,7 +156,9 @@ public static class BlobRequestOperationExtensions
 
 		using (var _ = q.Tracer?.StartActiveSpan("Serialize"))
 		{
-			var pipeline = new ContentPipeline(q.ContentSerializer, q.CompressionStrategy);
+			var pipeline = new ContentPipeline(
+                q.ContentSerializer, 
+                q.CompressionStrategy);
 
 			await pipeline.SerializeAndWriteAsync(value, ms);
 		}
@@ -175,27 +177,28 @@ public static class BlobRequestOperationExtensions
 
         using (var _ = q.Tracer?.StartActiveSpan("Transmit"))
         {
+            var conditions = GetBlobRequestConditions(q);
+
             try
             {
                 blobInfo = await q.BlobContainerClient
                     .GetBlockBlobClient(blobName)
                     .UploadAsync(
-                        content: ms, 
+                        content: ms,
                         options: new()
                         {
                             HttpHeaders = blobHttpHeaders,
-                            Metadata = metadata, 
-                            Conditions = q.IfMatch is not null ? 
-                                new BlobRequestConditions
-                                {
-                                    IfMatch = new ETag(q.IfMatch), 
-                                } : 
-                                null
+                            Metadata = metadata,
+                            Conditions = conditions
                         });
             }
-            catch (RequestFailedException rfex)
+            catch (RequestFailedException rfex) when (rfex.Status == 409)
             {
-                throw new ConditionFailedException();
+                throw new PreconditionFailedException();
+            }
+            catch (RequestFailedException rfex) when (rfex.Status == 412)
+            {
+                throw new PreconditionFailedException();
             }
         }
 
@@ -309,11 +312,21 @@ public static class BlobRequestOperationExtensions
 
         try
         {
-            response = await blobClient.DownloadAsync();
+            response = await blobClient.DownloadAsync(
+                conditions: GetBlobRequestConditions(q));
         }
         catch (RequestFailedException rfex) when (rfex.Status == 404)
         {
+            if (q.IfExists)
+            {
+                throw new PreconditionFailedException();
+            }
+
             return null;
+        }
+        catch (RequestFailedException rfex) when (rfex.Status == 412)
+        {
+            throw new PreconditionFailedException();
         }
 
         var pipeline = new ContentPipeline(
@@ -410,5 +423,30 @@ public static class BlobRequestOperationExtensions
         }
 
         return name;    
+    }
+
+    static BlobRequestConditions GetBlobRequestConditions<TKey, TValue>(
+        BlobRequest<TKey, TValue> request)
+    {
+        return new()
+        {
+            IfMatch = request.IfMatch is not null ?
+                new ETag(request.IfMatch) :
+                request.IfExists ?
+                    ETag.All :
+                    null,
+
+            IfNoneMatch = request.IfNotExists ?
+                ETag.All :
+                null, 
+
+            IfModifiedSince = request.IfModifiedSince is not null ?
+                request.IfModifiedSince.Value :
+                null,
+
+            IfUnmodifiedSince = request.IfUnmodifiedSince is not null ?
+                request.IfUnmodifiedSince.Value :
+                null
+        };
     }
 }

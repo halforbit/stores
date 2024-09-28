@@ -147,10 +147,69 @@ public static class BlobRequestBuilderExtensions
             VersionId = versionId
         };
 
+    public static IBlockBlob<TValue> IfMatch<TKey, TValue>(
+        this IBlockBlob<TValue> request,
+        string eTag) => ((BlobRequest<None, TValue>)request) with
+        {
+            IfMatch = eTag
+        };
+
     public static IBlockBlobs<TKey, TValue> IfMatch<TKey, TValue>(
         this IBlockBlobs<TKey, TValue> request,
         string eTag) => ((BlobRequest<TKey, TValue>)request) with
         {
             IfMatch = eTag
+        };
+
+    public static IBlockBlob<TValue> IfExists<TValue>(
+        this IBlockBlob<TValue> request) => ((BlobRequest<None, TValue>)request) with
+        {
+            IfExists = true
+        };
+
+    public static IBlockBlobs<TKey, TValue> IfExists<TKey, TValue>(
+        this IBlockBlobs<TKey, TValue> request) => ((BlobRequest<TKey, TValue>)request) with
+        {
+            IfExists = true
+        };
+
+    public static IBlockBlob<TValue> IfNotExists<TValue>(
+        this IBlockBlob<TValue> request) => ((BlobRequest<None, TValue>)request) with
+        {
+            IfNotExists = true
+        };
+
+    public static IBlockBlobs<TKey, TValue> IfNotExists<TKey, TValue>(
+        this IBlockBlobs<TKey, TValue> request) => ((BlobRequest<TKey, TValue>)request) with
+        {
+            IfNotExists = true
+        };
+
+    public static IBlockBlob<TValue> IfModifiedSince<TValue>(
+        this IBlockBlob<TValue> request,
+        DateTime modifiedSinceTime) => ((BlobRequest<None, TValue>)request) with
+        {
+            IfModifiedSince = modifiedSinceTime
+        };
+
+    public static IBlockBlobs<TKey, TValue> IfModifiedSince<TKey, TValue>(
+        this IBlockBlobs<TKey, TValue> request,
+        DateTime modifiedSinceTime) => ((BlobRequest<TKey, TValue>)request) with
+        {
+            IfModifiedSince = modifiedSinceTime
+        };
+
+    public static IBlockBlob<TValue> IfUnmodifiedSince<TValue>(
+        this IBlockBlob<TValue> request,
+        DateTime unmodifiedSinceTime) => ((BlobRequest<None, TValue>)request) with
+        {
+            IfUnmodifiedSince = unmodifiedSinceTime
+        };
+
+    public static IBlockBlobs<TKey, TValue> IfUnmodifiedSince<TKey, TValue>(
+        this IBlockBlobs<TKey, TValue> request,
+        DateTime unmodifiedSinceTime) => ((BlobRequest<TKey, TValue>)request) with
+        {
+            IfUnmodifiedSince = unmodifiedSinceTime
         };
 }

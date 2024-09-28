@@ -1,6 +1,5 @@
 ﻿using Azure.Storage.Blobs;
 using OpenTelemetry.Trace;
-using System.Security;
 
 namespace Halforbit.Stores;
 
@@ -58,6 +57,14 @@ record BlobRequest<TKey, TValue> :
 
     public string? IfMatch { get; init; }
 
+    public bool IfExists { get; init; }
+
+    public bool IfNotExists { get; init; }
+
+    public DateTime? IfModifiedSince { get; init; }
+
+    public DateTime? IfUnmodifiedSince { get; init; }
+
     public KeyMap<TKey>? KeyMap { get; init; }
 
     public BlobRequest<TK, TV> RecastTo<TK, TV>()
@@ -80,6 +87,10 @@ record BlobRequest<TKey, TValue> :
             Name = Name,
             VersionId = VersionId,
             IfMatch = IfMatch,
+            IfExists = IfExists,
+            IfNotExists = IfNotExists,
+            IfModifiedSince = IfModifiedSince,
+            IfUnmodifiedSince = IfUnmodifiedSince,
         };
     }
 
@@ -103,6 +114,10 @@ record BlobRequest<TKey, TValue> :
             Name = Name,
             VersionId = VersionId,
             IfMatch = IfMatch,
+            IfExists = IfExists,
+            IfNotExists = IfNotExists,
+            IfModifiedSince = IfModifiedSince,
+            IfUnmodifiedSince = IfUnmodifiedSince,
         };
     }
 
@@ -126,6 +141,10 @@ record BlobRequest<TKey, TValue> :
             Name = Name,
             VersionId = VersionId,
             IfMatch = IfMatch,
+            IfExists = IfExists,
+            IfNotExists = IfNotExists,
+            IfModifiedSince = IfModifiedSince,
+            IfUnmodifiedSince = IfUnmodifiedSince,
             KeyMap = KeyMap
         };
     }

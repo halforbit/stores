@@ -53,6 +53,20 @@ public class BlobIntegrationTests
 
             Assert.Null(getA);
 
+			await Assert.ThrowsAsync<PreconditionFailedException>(async () =>
+			{
+				await vehicleStore
+					.IfExists()
+					.GetBlobOrNullAsync();
+            });
+
+            await Assert.ThrowsAsync<PreconditionFailedException>(async () =>
+            {
+                await vehicleStore
+                    .IfExists()
+                    .UpsertBlobAsync(value);
+            });
+
             var putResult = await vehicleStore.UpsertBlobAsync(
                 value, 
                 new Dictionary<string, string>
@@ -71,7 +85,14 @@ public class BlobIntegrationTests
             var getB = await vehicleStore.GetBlobOrNullAsync();
 
             Assert.NotNull(getB);
-            
+
+            await Assert.ThrowsAsync<PreconditionFailedException>(async () =>
+            {
+                await vehicleStore
+                    .IfNotExists()
+                    .UpsertBlobAsync(value);
+            });
+
             var blobs = new List<Blob>();
             
             await foreach (var b in container.EnumerateBlobsAsync())
@@ -442,7 +463,7 @@ public class BlobIntegrationTests
 				.IfMatch(eTag)
 				.UpsertBlobAsync(id, value);
 
-			await Assert.ThrowsAsync<ConditionFailedException>(async () =>
+			await Assert.ThrowsAsync<PreconditionFailedException>(async () =>
 			{
 				await vehicleStore
 					.IfMatch(eTag)
