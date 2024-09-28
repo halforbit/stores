@@ -147,7 +147,7 @@ public static class BlobRequestBuilderExtensions
             VersionId = versionId
         };
 
-    public static IBlockBlob<TValue> IfMatch<TKey, TValue>(
+    public static IBlockBlob<TValue> IfMatch<TValue>(
         this IBlockBlob<TValue> request,
         string eTag) => ((BlobRequest<None, TValue>)request) with
         {
