@@ -63,6 +63,18 @@ public static class BlobRequestOperationExtensions
                 }
             }
 
+            if (q.IfModifiedSince is not null &&
+                blobItem.Properties.LastModified > q.IfModifiedSince)
+            {
+                continue;
+            }
+
+            if (q.IfUnmodifiedSince is not null &&
+                blobItem.Properties.LastModified <= q.IfUnmodifiedSince)
+            {
+                continue;
+            }
+
             yield return new()
             {
                 Name = blobItem.Name,
@@ -201,7 +213,7 @@ public static class BlobRequestOperationExtensions
                 throw new PreconditionFailedException();
             }
         }
-
+        
         var eTag = blobInfo.ETag.ToString();
 
         span?.SetAttribute("ETag", eTag);
@@ -212,6 +224,7 @@ public static class BlobRequestOperationExtensions
         {
             ETag = eTag,
             Name = blobName,
+            LastModified = blobInfo.LastModified.UtcDateTime,
             VersionId = blobInfo.VersionId
         };
 	}
@@ -314,6 +327,17 @@ public static class BlobRequestOperationExtensions
         {
             response = await blobClient.DownloadAsync(
                 conditions: GetBlobRequestConditions(q));
+
+            if (response.GetRawResponse().Status == 304)
+            {
+                if (q.IfModifiedSince is not null ||
+                    q.IfUnmodifiedSince is not null)
+                {
+                    throw new PreconditionFailedException();
+                }
+
+                throw new Exception("Unexpected HTTP 304");
+            }
         }
         catch (RequestFailedException rfex) when (rfex.Status == 404)
         {

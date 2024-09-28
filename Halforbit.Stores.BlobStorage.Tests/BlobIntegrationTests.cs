@@ -86,6 +86,19 @@ public class BlobIntegrationTests
 
             Assert.NotNull(getB);
 
+			var getB_1 = await vehicleStore
+				.IfUnmodifiedSince(putResult.LastModified)
+				.GetBlobOrNullAsync();
+
+			Assert.NotNull(getB_1);
+
+            await Assert.ThrowsAsync<PreconditionFailedException>(async () =>
+            {
+                await vehicleStore
+                    .IfModifiedSince(putResult.LastModified)
+                    .UpsertBlobAsync(value);
+            });
+
             await Assert.ThrowsAsync<PreconditionFailedException>(async () =>
             {
                 await vehicleStore
