@@ -78,8 +78,26 @@ public static class BlobRequestBuilderExtensions
             ContentEncodingExtension = ".gz"
         };
 
+    public static IEmptyBlockBlobs Empty(
+        this IBlockBlobs request)
+    {
+        return (BlobRequest<None, None>)request;
+    }
+
     public static IBlockBlobs<TKey> Key<TKey>(
         this ISerializedBlockBlobs request,
+        Expression<Func<TKey, string>> map)
+    {
+        var q = (BlobRequest<None, None>)request;
+
+        return q.RecastTo<TKey, None>() with
+        {
+            KeyMap = KeyMap<TKey>.Define(map, $"{q.ContentTypeExtension}{q.ContentEncodingExtension}")
+        };
+    }
+
+    public static IEmptyBlockBlobs<TKey> Key<TKey>(
+        this IEmptyBlockBlobs request,
         Expression<Func<TKey, string>> map)
     {
         var q = (BlobRequest<None, None>)request;
@@ -99,6 +117,13 @@ public static class BlobRequestBuilderExtensions
 
     public static IBlockBlob Name(
         this ICompressedBlockBlobs request,
+        string name) => (BlobRequest<None, None>)request with
+        {
+            Name = name
+        };
+
+    public static IEmptyBlockBlob Name(
+        this IEmptyBlockBlobs request,
         string name) => (BlobRequest<None, None>)request with
         {
             Name = name
@@ -128,6 +153,30 @@ public static class BlobRequestBuilderExtensions
             IncludeMetadata = false
         };
 
+    public static IEmptyBlockBlobs<TKey> WithMetadata<TKey>(
+        this IEmptyBlockBlobs<TKey> request) => ((BlobRequest<TKey, None>)request) with
+        {
+            IncludeMetadata = true
+        };
+
+    public static IEmptyBlockBlobs<TKey> WithoutMetadata<TKey>(
+        this IEmptyBlockBlobs<TKey> request) => ((BlobRequest<TKey, None>)request) with
+        {
+            IncludeMetadata = false
+        };
+
+    public static IEmptyBlockBlob WithMetadata(
+        this IEmptyBlockBlob request) => ((BlobRequest<None, None>)request) with
+        {
+            IncludeMetadata = true
+        };
+
+    public static IEmptyBlockBlob WithoutMetadata(
+        this IEmptyBlockBlob request) => ((BlobRequest<None, None>)request) with
+        {
+            IncludeMetadata = false
+        };
+
     public static IBlockBlobs<TKey, TValue> WithVersions<TKey, TValue>(
         this IBlockBlobs<TKey, TValue> request) => ((BlobRequest<TKey, TValue>)request) with
         {
@@ -140,9 +189,54 @@ public static class BlobRequestBuilderExtensions
             IncludeVersions = false
         };
 
+    public static IEmptyBlockBlobs<TKey> WithVersions<TKey>(
+        this IEmptyBlockBlobs<TKey> request) => ((BlobRequest<TKey, None>)request) with
+        {
+            IncludeVersions = true
+        };
+
+    public static IEmptyBlockBlobs<TKey> WithoutVersions<TKey>(
+        this IBlockBlobs<TKey> request) => ((BlobRequest<TKey, None>)request) with
+        {
+            IncludeVersions = false
+        };
+
+    public static IEmptyBlockBlob WithVersions(
+        this IEmptyBlockBlob request) => ((BlobRequest<None, None>)request) with
+        {
+            IncludeVersions = true
+        };
+
+    public static IEmptyBlockBlob WithoutVersions(
+        this IBlockBlob request) => ((BlobRequest<None, None>)request) with
+        {
+            IncludeVersions = false
+        };
+
     public static IBlockBlobs<TKey, TValue> Version<TKey, TValue>(
         this IBlockBlobs<TKey, TValue> request,
         string versionId) => ((BlobRequest<TKey, TValue>)request) with
+        {
+            VersionId = versionId
+        };
+
+    public static IBlockBlob<TValue> Version<TValue>(
+        this IBlockBlob<TValue> request,
+        string versionId) => ((BlobRequest<None, TValue>)request) with
+        {
+            VersionId = versionId
+        };
+
+    public static IEmptyBlockBlob Version(
+        this IEmptyBlockBlob request,
+        string versionId) => ((BlobRequest<None, None>)request) with
+        {
+            VersionId = versionId
+        };
+
+    public static IEmptyBlockBlobs<TKey> Version<TKey>(
+        this IEmptyBlockBlobs<TKey> request,
+        string versionId) => ((BlobRequest<TKey, None>)request) with
         {
             VersionId = versionId
         };

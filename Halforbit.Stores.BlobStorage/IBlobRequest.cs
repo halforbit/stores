@@ -12,6 +12,12 @@ public interface ISerializedBlockBlobs { }
 
 public interface ICompressedBlockBlobs { }
 
+public interface IEmptyBlockBlobs { }
+
+public interface IEmptyBlockBlob { }
+
+public interface IEmptyBlockBlobs<TKey> { }
+
 public interface IBlockBlob
 {
     IBlockBlob<TValue> Value<TValue>();

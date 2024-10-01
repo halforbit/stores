@@ -37,7 +37,23 @@ public static class BlobRequestOperationExtensions
 
         return EnumerateBlobsAsync(q, prefix);
     }
-	
+
+    public static IAsyncEnumerable<Blob> EnumerateBlobsAsync<TKey>(
+        this IEmptyBlockBlobs<TKey> request,
+        object? partialKey = null)
+    {
+        var q = (BlobRequest<TKey, None>)request;
+
+        if (q.KeyMap is null) throw new ArgumentNullException(nameof(q.KeyMap));
+
+        if (!q.KeyMap.TryMapPartialKeyToPrefixString(partialKey, out var prefix))
+        {
+            throw new ArgumentException("Failed to map partial key to prefix string.");
+        }
+
+        return EnumerateBlobsAsync(q, prefix);
+    }
+
     static async IAsyncEnumerable<Blob> EnumerateBlobsAsync<TKey, TValue>(
 		BlobRequest<TKey, TValue> q,
         string? prefix = null)
@@ -147,14 +163,43 @@ public static class BlobRequestOperationExtensions
 			metadata: metadata);
 	}
 
+    public static Task<PutResult> UpsertBlobAsync(
+        this IEmptyBlockBlob request,
+        IDictionary<string, string>? metadata = null)
+    {
+        var q = (BlobRequest<None, None>)request;
+
+        return UpsertBlobAsync(
+            q: q,
+            key: None.Instance,
+            value: None.Instance,
+            metadata: metadata);
+    }
+
+    public static Task<PutResult> UpsertBlobAsync<TKey>(
+        this IEmptyBlockBlobs<TKey> request,
+        TKey key,
+        IDictionary<string, string>? metadata = null)
+    {
+        var q = (BlobRequest<TKey, None>)request;
+
+        return UpsertBlobAsync(
+            q: q,
+            key: key,
+            value: None.Instance,
+            metadata: metadata);
+    }
+
     static async Task<PutResult> UpsertBlobAsync<TKey, TValue>(
         BlobRequest<TKey, TValue> q,
         TKey key,
         TValue value,
         IDictionary<string, string>? metadata = null)
-    {        
-        if (q.ContentSerializer is null) throw new ArgumentNullException("Serializer is not specified.");
-        
+    {
+        if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient is not initialized.");
+
+        var empty = typeof(TValue) == typeof(None);
+                
         using var span = q.Tracer?.StartActiveSpan(nameof(UpsertBlobAsync));
 
         var blobName =
@@ -166,14 +211,19 @@ public static class BlobRequestOperationExtensions
 
 		using var ms = _recyclableMemoryStreamManager.GetStream();
 
-		using (var _ = q.Tracer?.StartActiveSpan("Serialize"))
-		{
-			var pipeline = new ContentPipeline(
-                q.ContentSerializer, 
-                q.CompressionStrategy);
+        if (!empty)
+        {
+            if (q.ContentSerializer is null) throw new ArgumentNullException("Serializer is not specified.");
 
-			await pipeline.SerializeAndWriteAsync(value, ms);
-		}
+		    using (var _ = q.Tracer?.StartActiveSpan("Serialize"))
+		    {
+			    var pipeline = new ContentPipeline(
+                    q.ContentSerializer, 
+                    q.CompressionStrategy);
+
+			    await pipeline.SerializeAndWriteAsync(value, ms);
+		    }
+        }
 
 		span?.SetAttribute("BlobLength", ms.Length);
 
@@ -254,7 +304,32 @@ public static class BlobRequestOperationExtensions
 			.ExistsAsync();
 	}
 
-	public static async Task<bool> DeleteBlobAsync<TValue>(
+    public static async Task<bool> BlobExistsAsync(
+        this IEmptyBlockBlob request)
+    {
+        var q = (BlobRequest<None, None>)request;
+
+        if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient is not initialized.");
+
+        return await q.BlobContainerClient
+            .GetBlobClient(BuildBlobName(q))
+            .ExistsAsync();
+    }
+
+    public static async Task<bool> BlobExistsAsync<TKey>(
+        this IEmptyBlockBlobs<TKey> request,
+        TKey key)
+    {
+        var q = (BlobRequest<TKey, None>)request;
+
+        if (q.BlobContainerClient is null) throw new ArgumentNullException(nameof(q.BlobContainerClient));
+
+        return await q.BlobContainerClient
+            .GetBlobClient(BuildBlobName(q, key))
+            .ExistsAsync();
+    }
+    
+    public static async Task<bool> DeleteBlobAsync<TValue>(
         this IBlockBlob<TValue> request)
     {
         var q = (BlobRequest<None, TValue>)request;
@@ -279,7 +354,32 @@ public static class BlobRequestOperationExtensions
 			.DeleteIfExistsAsync();
 	}
 
-	public static Task<Blob<TValue>?> GetBlobOrNullAsync<TValue>(
+    public static async Task<bool> DeleteBlobAsync(
+        this IEmptyBlockBlob request)
+    {
+        var q = (BlobRequest<None, None>)request;
+
+        if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient is not initialized.");
+
+        return await q.BlobContainerClient
+            .GetBlobClient(BuildBlobName(q))
+            .DeleteIfExistsAsync();
+    }
+
+    public static async Task<bool> DeleteBlobAsync<TKey>(
+        this IEmptyBlockBlobs<TKey> request,
+        TKey key)
+    {
+        var q = (BlobRequest<TKey, None>)request;
+
+        if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient is not initialized.");
+
+        return await q.BlobContainerClient
+            .GetBlobClient(BuildBlobName(q, key))
+            .DeleteIfExistsAsync();
+    }
+
+    public static Task<Blob<TValue>?> GetBlobOrNullAsync<TValue>(
 		this IBlockBlob<TValue> request)
     {
         var q = (BlobRequest<None, TValue>)request;
@@ -296,13 +396,31 @@ public static class BlobRequestOperationExtensions
 		return GetBlobOrNullAsync(q, key);
 	}
 
+    public static async Task<Blob?> GetBlobOrNullAsync(
+        this IEmptyBlockBlob request)
+    {
+        var q = (BlobRequest<None, None>)request;
+
+        return await GetBlobOrNullAsync(q);
+    }
+
+    public static async Task<Blob?> GetBlobOrNullAsync<TKey>(
+        this IEmptyBlockBlobs<TKey> request,
+        TKey key)
+    {
+        var q = (BlobRequest<TKey, None>)request;
+
+        return await GetBlobOrNullAsync(q, key);
+    }
+
     static async Task<Blob<TValue>?> GetBlobOrNullAsync<TKey, TValue>(
         BlobRequest<TKey, TValue> q,
         TKey? key = default)
     {
+        var empty = typeof(TValue) == typeof(None);
+
         if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient is not initialized.");
 
-        if (q.ContentSerializer is null) throw new Exception("Serializer is not specified.");
 
         using var span = q.Tracer?.StartActiveSpan(nameof(GetBlobOrNullAsync));
 
@@ -353,15 +471,26 @@ public static class BlobRequestOperationExtensions
             throw new PreconditionFailedException();
         }
 
-        var pipeline = new ContentPipeline(
-            q.ContentSerializer, 
-            q.CompressionStrategy);
+        TValue? value = default;
 
-        var value = await pipeline.ReadAndDeserializeAsync<TValue>(response.Value.Content);
-
-        if (value is null)
+        if (!empty)
         {
-            return null;
+            if (q.ContentSerializer is null) throw new Exception("Serializer is not specified.");
+
+            var pipeline = new ContentPipeline(
+                q.ContentSerializer, 
+                q.CompressionStrategy);
+
+            value = await pipeline.ReadAndDeserializeAsync<TValue>(response.Value.Content);
+
+            if (value is null)
+            {
+                return null;
+            }
+        }
+        else
+        {
+            value = (TValue)(object)None.Instance;
         }
 
         var headers = response.GetRawResponse().Headers;

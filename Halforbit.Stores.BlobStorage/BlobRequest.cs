@@ -23,7 +23,10 @@ record BlobRequest<TKey, TValue> :
     IBlockBlob,
     IBlockBlob<TValue>,
     IBlockBlobs<TKey>,
-    IBlockBlobs<TKey, TValue>
+    IBlockBlobs<TKey, TValue>,
+    IEmptyBlockBlobs,
+    IEmptyBlockBlobs<TKey>,
+    IEmptyBlockBlob
 {
     public Tracer? Tracer { get; init; }
 

@@ -338,15 +338,26 @@ public class KeyMap<TKey>
 
         if (body is ConstantExpression constant)
         {
-            return [
-                new MapSegment
-                {
-                    Text = constant.Value.ToString().AsMemory()
-                },
-                new MapSegment
-                {
-                    Text = suffix.AsMemory()
-                }];
+            if (string.IsNullOrWhiteSpace(suffix))
+            {
+                return [
+                    new MapSegment
+                    {
+                        Text = constant.Value.ToString().AsMemory()
+                    }];
+            }
+            else
+            {
+                return [
+                    new MapSegment
+                    {
+                        Text = constant.Value.ToString().AsMemory()
+                    },
+                    new MapSegment
+                    {
+                        Text = suffix.AsMemory()
+                    }];
+            }
         }
 
         if (body is MethodCallExpression methodCall)
@@ -636,7 +647,10 @@ public class KeyMap<TKey>
             curSegment.Clear();
         }
 
-        segments.Add(new() { Text = suffix.AsMemory() });
+        if (!string.IsNullOrWhiteSpace(suffix))
+        {
+            segments.Add(new() { Text = suffix.AsMemory() });
+        }
 
         return segments.ToArray();
     }
