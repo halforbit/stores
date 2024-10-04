@@ -602,4 +602,30 @@ public static class BlobRequestOperationExtensions
                 null
         };
     }
+
+    public static string GetBlobName<TKey, TValue>(
+        this IBlockBlobs<TKey, TValue> request)
+    {
+        return GetBlobName<TKey>((BlobRequest<TKey, TValue>)request);
+    }
+
+    public static string GetBlobName<TKey>(
+        this IBlockBlobs<TKey> request)
+    {
+        return GetBlobName<TKey, None>((BlobRequest<TKey, None>)request);
+    }
+
+    static string GetBlobName<TKey, TValue>(
+        BlobRequest<TKey, TValue> request,
+        TKey key)
+    {
+        if (request.KeyMap is null) throw new ArgumentNullException(nameof(request.KeyMap));
+
+        if (!request.KeyMap.TryMapKeyToString(key, out var name))
+        {
+            throw new ArgumentException("Could not map key to blob name.");
+        }
+
+        return name;
+    }
 }

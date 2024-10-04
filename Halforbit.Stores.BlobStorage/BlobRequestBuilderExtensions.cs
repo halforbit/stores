@@ -306,4 +306,19 @@ public static class BlobRequestBuilderExtensions
         {
             IfUnmodifiedSince = unmodifiedSinceTime
         };
+
+    public static ISerializedBlockBlobs FileExtension(
+        this ISerializedBlockBlobs request,
+        string fileExtension) => ((BlobRequest<None, None>)request) with
+        {
+            ContentEncodingExtension = string.Empty,
+            ContentTypeExtension = fileExtension
+        };
+
+    public static ISerializedBlockBlobs NoFileExtension(
+        this ISerializedBlockBlobs request) => ((BlobRequest<None, None>)request) with
+        {
+            ContentEncodingExtension = string.Empty,
+            ContentTypeExtension = string.Empty
+        };
 }
