@@ -9,6 +9,34 @@ public class KeyMapTests
     readonly Guid _entityId = Guid.Parse("788bd9ca5b7a486386447098a109a3e0");
 
     [Fact]
+    void TryMapKeyToString_PassthroughStringKey_Success()
+    {
+        var map = KeyMap<string>.Define(
+            k => $"{k}", 
+            string.Empty);
+
+        var success = map.TryMapKeyToString("hello", out var str);
+
+        Assert.True(success);
+
+        Assert.Equal("hello", str);
+    }
+
+    [Fact]
+    void TryMapStringToKey_PassthroughStringKey_Success()
+    {
+        var map = KeyMap<string>.Define(
+            k => $"{k}",
+            string.Empty);
+
+        var success = map.TryMapStringToKey("hello", out var str);
+
+        Assert.True(success);
+
+        Assert.Equal("hello", str);
+    }
+
+    [Fact]
     void TryMapKeyToString_TupleKey_Success()
     {        
         var map = KeyMap<(Guid TenantId, int ProjectId, Guid EntityId)>.Define(

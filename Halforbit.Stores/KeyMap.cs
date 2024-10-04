@@ -413,6 +413,12 @@ public class KeyMap<TKey>
 
                                 break;
 
+                            case ParameterExpression parameter:
+
+                                args[i] = parameter;
+
+                                break;
+
                             default: throw ShapeError();
                         }
                     }
