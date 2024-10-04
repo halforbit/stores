@@ -604,15 +604,21 @@ public static class BlobRequestOperationExtensions
     }
 
     public static string GetBlobName<TKey, TValue>(
-        this IBlockBlobs<TKey, TValue> request)
+        this IBlockBlobs<TKey, TValue> request,
+        TKey key)
     {
-        return GetBlobName<TKey>((BlobRequest<TKey, TValue>)request);
+        return GetBlobName(
+            (BlobRequest<TKey, TValue>)request,
+            key);
     }
 
     public static string GetBlobName<TKey>(
-        this IBlockBlobs<TKey> request)
+        this IBlockBlobs<TKey> request,
+        TKey key)
     {
-        return GetBlobName<TKey, None>((BlobRequest<TKey, None>)request);
+        return GetBlobName(
+            (BlobRequest<TKey, None>)request,
+            key);
     }
 
     static string GetBlobName<TKey, TValue>(
