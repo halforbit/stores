@@ -237,6 +237,13 @@ public static class BlobRequestBuilderExtensions
             IncludeVersions = false
         };
 
+    public static IBlobContainer Version(
+        this IBlobContainer request,
+        string versionId) => ((BlobRequest<None, None>)request) with
+        {
+            VersionId = versionId
+        };
+
     public static IBlockBlobs<TKey, TValue> Version<TKey, TValue>(
         this IBlockBlobs<TKey, TValue> request,
         string versionId) => ((BlobRequest<TKey, TValue>)request) with
