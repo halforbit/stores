@@ -129,6 +129,18 @@ public static class BlobRequestBuilderExtensions
             Name = name
         };
 
+    public static IBlobContainer WithMetadata(
+        this IBlobContainer request) => ((BlobRequest<None, None>)request) with
+        {
+            IncludeMetadata = true
+        };
+
+    public static IBlobContainer WithoutMetadata(
+        this IBlobContainer request) => ((BlobRequest<None, None>)request) with
+        {
+            IncludeMetadata = false
+        };
+
     public static IBlockBlobs<TKey, TValue> WithMetadata<TKey, TValue>(
         this IBlockBlobs<TKey, TValue> request) => ((BlobRequest<TKey, TValue>)request) with
         {
@@ -175,6 +187,18 @@ public static class BlobRequestBuilderExtensions
         this IEmptyBlockBlob request) => ((BlobRequest<None, None>)request) with
         {
             IncludeMetadata = false
+        };
+
+    public static IBlobContainer WithVersions(
+        this IBlobContainer request) => ((BlobRequest<None, None>)request) with
+        {
+            IncludeVersions = true
+        };
+
+    public static IBlobContainer WithoutVersions(
+        this IBlobContainer request) => ((BlobRequest<None, None>)request) with
+        {
+            IncludeVersions = false
         };
 
     public static IBlockBlobs<TKey, TValue> WithVersions<TKey, TValue>(
