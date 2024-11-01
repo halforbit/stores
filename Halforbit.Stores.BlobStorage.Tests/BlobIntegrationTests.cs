@@ -194,7 +194,7 @@ public class BlobIntegrationTests
 
 			var getB = await vehiclesStore.GetBlobOrNullAsync(id);
 
-			Assert.NotNull(getB);
+            Assert.NotNull(getB);
 
 			var blobs = new List<Blob>();
 

@@ -151,7 +151,7 @@ public static class BlobRequestOperationExtensions
 	public static Task<PutResult> UpsertBlobAsync<TKey, TValue>(
 		this IBlockBlobs<TKey, TValue> request,
 		TKey key, 
-        TValue value,
+        TValue? value,
 		IDictionary<string, string>? metadata = null)
     {
 		var q = (BlobRequest<TKey, TValue>)request;
@@ -193,12 +193,12 @@ public static class BlobRequestOperationExtensions
     static async Task<PutResult> UpsertBlobAsync<TKey, TValue>(
         BlobRequest<TKey, TValue> q,
         TKey key,
-        TValue value,
+        TValue? value,
         IDictionary<string, string>? metadata = null)
     {
         if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient is not initialized.");
 
-        var empty = typeof(TValue) == typeof(None);
+        var empty = typeof(TValue) == typeof(None) || value is null;
                 
         using var span = q.Tracer?.StartActiveSpan(nameof(UpsertBlobAsync));
 
@@ -481,11 +481,14 @@ public static class BlobRequestOperationExtensions
                 q.ContentSerializer, 
                 q.CompressionStrategy);
 
-            value = await pipeline.ReadAndDeserializeAsync<TValue>(response.Value.Content);
-
-            if (value is null)
+            if (response.Value.Details.ContentLength > 0)
             {
-                return null;
+                value = await pipeline.ReadAndDeserializeAsync<TValue>(response.Value.Content);
+
+                if (value is null)
+                {
+                    return null;
+                }
             }
         }
         else
