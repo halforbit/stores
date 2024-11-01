@@ -27,6 +27,8 @@ public record Blob
 
 public record Blob<TValue> : Blob
 {
-	public required TValue Value { get; init; }
+    internal TValue? _value;
+
+    public TValue Value => _value ?? throw new ArgumentNullException(nameof(Value));
 }
 

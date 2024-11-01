@@ -2,6 +2,7 @@
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Microsoft.IO;
+using System;
 
 namespace Halforbit.Stores;
 
@@ -421,7 +422,6 @@ public static class BlobRequestOperationExtensions
 
         if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient is not initialized.");
 
-
         using var span = q.Tracer?.StartActiveSpan(nameof(GetBlobOrNullAsync));
 
         var blobName = key is null ? 
@@ -517,7 +517,7 @@ public static class BlobRequestOperationExtensions
         {
             Name = blobName,
             
-            Value = value,
+            _value = value,
             
             ETag = headers.ETag?.ToString() ?? string.Empty,
             
@@ -636,5 +636,54 @@ public static class BlobRequestOperationExtensions
         }
 
         return name;
+    }
+
+    public static Task SetBlobMetadataAsync(
+        this IBlobContainer request,
+        string key,
+        IDictionary<string, string> metadata)
+    {
+        var q = (BlobRequest<None, None>)request;
+
+        return SetBlobMetadataAsync(
+            q, 
+            key, 
+            metadata);
+    }
+
+    public static Task SetBlobMetadataAsync<TKey, TValue>(
+        this IBlockBlobs<TKey, TValue> request,
+        TKey key,
+        IDictionary<string, string> metadata)
+    {
+        var q = (BlobRequest<TKey, TValue>)request;
+
+        return SetBlobMetadataAsync(
+            q, 
+            GetBlobName(request, key), 
+            metadata);
+    }
+
+    static async Task SetBlobMetadataAsync<TKey, TValue>(
+        BlobRequest<TKey, TValue> q,
+        string key, 
+        IDictionary<string, string> metadata)
+    {
+        if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient is not initialized.");
+        
+        using var span = q.Tracer?.StartActiveSpan(nameof(SetBlobMetadataAsync));
+
+        var blobName = key;
+
+        var blobClient = q.BlobContainerClient.GetBlockBlobClient(blobName);
+
+        if (q.VersionId is not null)
+        {
+            blobClient = blobClient.WithVersion(q.VersionId);
+
+            span?.SetAttribute("VersionId", q.VersionId);
+        }
+
+        await blobClient.SetMetadataAsync(metadata);
     }
 }
