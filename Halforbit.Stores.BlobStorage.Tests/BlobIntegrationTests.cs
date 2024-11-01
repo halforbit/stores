@@ -384,13 +384,20 @@ public class BlobIntegrationTests
             Assert.Equal(transactionId, priorBlob.Metadata?["transaction"] ??
                 throw new ArgumentNullException(nameof(Blob.Metadata)));
 
-            var deleteB = await vehiclesStore.DeleteBlobAsync(id);
+            var deleteB = await vehiclesStore
+                .Version(versionId)
+                .DeleteBlobAsync(id);
 
 			Assert.True(deleteB);
 
-			var deleteC = await vehiclesStore.DeleteBlobAsync(id);
+            var existsX = await vehiclesStore.BlobExistsAsync(id);
 
-			Assert.False(deleteC);
+            Assert.True(existsX);
+
+			var deleteC = await vehiclesStore
+                .DeleteBlobAsync(id);
+
+			Assert.True(deleteC);
 
 			var getC = await vehiclesStore.GetBlobOrNullAsync(id);
 
@@ -532,7 +539,9 @@ public class BlobIntegrationTests
             Assert.Equal(transactionId, priorBlob.Metadata?["transaction"] ??
                 throw new ArgumentNullException(nameof(Blob.Metadata)));
 
-            var deleteB = await vehiclesStore.DeleteBlobAsync(id);
+            var deleteB = await vehiclesStore
+                .Version(versionId)
+                .DeleteBlobAsync(id);
 
             Assert.True(deleteB);
 

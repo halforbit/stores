@@ -329,7 +329,22 @@ public static class BlobRequestOperationExtensions
             .GetBlobClient(BuildBlobName(q, key))
             .ExistsAsync();
     }
-    
+
+    public static async Task<bool> DeleteBlobAsync<TValue>(
+        this IBlobContainer request,
+        string key)
+    {
+        var q = (BlobRequest<None, None>)request;
+
+        if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient is not initialized.");
+
+        var c = q.BlobContainerClient.GetBlobClient(key);
+
+        if (q.VersionId is not null) c = c.WithVersion(q.VersionId);
+
+        return await c.DeleteIfExistsAsync();
+    }
+
     public static async Task<bool> DeleteBlobAsync<TValue>(
         this IBlockBlob<TValue> request)
     {
@@ -339,7 +354,7 @@ public static class BlobRequestOperationExtensions
 
         var c = q.BlobContainerClient.GetBlobClient(BuildBlobName(q));
 
-        if (q.VersionId is not null) c.WithVersion(q.VersionId);
+        if (q.VersionId is not null) c = c.WithVersion(q.VersionId);
 
         return await c.DeleteIfExistsAsync();
     }
@@ -352,9 +367,9 @@ public static class BlobRequestOperationExtensions
 
 		if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient is not initialized.");
 
-        var c = q.BlobContainerClient.GetBlobClient(BuildBlobName(q));
+        var c = q.BlobContainerClient.GetBlobClient(BuildBlobName(q, key));
 
-        if (q.VersionId is not null) c.WithVersion(q.VersionId);
+        if (q.VersionId is not null) c = c.WithVersion(q.VersionId);
 
         return await c.DeleteIfExistsAsync();
     }
@@ -368,7 +383,7 @@ public static class BlobRequestOperationExtensions
 
         var c = q.BlobContainerClient.GetBlobClient(BuildBlobName(q));
 
-        if (q.VersionId is not null) c.WithVersion(q.VersionId);
+        if (q.VersionId is not null) c = c.WithVersion(q.VersionId);
 
         return await c.DeleteIfExistsAsync();
     }
@@ -381,9 +396,9 @@ public static class BlobRequestOperationExtensions
 
         if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient is not initialized.");
 
-        var c = q.BlobContainerClient.GetBlobClient(BuildBlobName(q));
+        var c = q.BlobContainerClient.GetBlobClient(BuildBlobName(q, key));
 
-        if (q.VersionId is not null) c.WithVersion(q.VersionId);
+        if (q.VersionId is not null) c = c.WithVersion(q.VersionId);
 
         return await c.DeleteIfExistsAsync();
     }
