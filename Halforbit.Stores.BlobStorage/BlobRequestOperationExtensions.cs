@@ -330,7 +330,7 @@ public static class BlobRequestOperationExtensions
             .ExistsAsync();
     }
 
-    public static async Task<bool> DeleteBlobAsync<TValue>(
+    public static async Task<bool> DeleteBlobAsync(
         this IBlobContainer request,
         string key)
     {
