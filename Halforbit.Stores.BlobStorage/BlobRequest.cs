@@ -34,7 +34,7 @@ record BlobRequest<TKey, TValue> :
 
     public string? _ContainerName { get; init; }
 
-    public BlobContainerClient? BlobContainerClient { get; init; }
+    public IBlobContainerClient? BlobContainerClient { get; init; }
 
     public BlobType BlobType { get; init; }
 

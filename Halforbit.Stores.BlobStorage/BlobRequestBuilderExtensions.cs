@@ -28,7 +28,9 @@ public static class BlobRequestBuilderExtensions
         {
             _ContainerName = name,
 
-            BlobContainerClient = new BlobContainerClient(q._ConnectionString, name)
+            BlobContainerClient = new AzureBlobContainerClient(
+                q._ConnectionString ?? throw new ArgumentException("Connection string not specified."), 
+                name)
         };
     }
 
