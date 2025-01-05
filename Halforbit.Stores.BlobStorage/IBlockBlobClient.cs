@@ -8,7 +8,7 @@ interface IBlockBlobClient
 {
     IBlockBlobClient WithVersion(string versionId);
 
-    Task<Response<BlobContentInfo>> UploadAsync(
+    Task<BlobPutResult/*Response<BlobContentInfo>*/> UploadAsync(
         Stream content,/*
          * HttpHeaders
          * Metadata
@@ -20,7 +20,7 @@ interface IBlockBlobClient
         */BlobUploadOptions options/*,
         CancellationToken cancellationToken = default*/);
 
-    Task<Response<BlobDownloadInfo>> DownloadAsync(
+    Task<BlobGetResult?/*Response<BlobDownloadInfo>*/> DownloadAsync(
         /*HttpRange range = default,
          * - IfMatch
          * - IfNoneMatch
@@ -30,7 +30,7 @@ interface IBlockBlobClient
         bool rangeGetContentHash = default,
         CancellationToken cancellationToken = default*/);
 
-    Task<Response<BlobInfo>> SetMetadataAsync(
+    Task/*<Response<BlobInfo>>*/ SetMetadataAsync(
         Metadata metadata/*,
         BlobRequestConditions? conditions = default,
         CancellationToken cancellationToken = default*/);

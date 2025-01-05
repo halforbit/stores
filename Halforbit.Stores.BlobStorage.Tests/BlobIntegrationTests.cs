@@ -1,4 +1,3 @@
-using Azure;
 using MessagePack;
 using Microsoft.Extensions.Configuration;
 
@@ -834,7 +833,7 @@ public class BlobIntegrationTests
 
             metadata.Add("__success", "true");
 
-            await Assert.ThrowsAsync<RequestFailedException>(async () =>
+            await Assert.ThrowsAsync<ActionFailedException>(async () =>
             {
                 await vehicleStore
                     .Version(blobs[0].VersionId!)
@@ -942,7 +941,7 @@ public class BlobIntegrationTests
 
             metadata.Add("__success", "true");
 
-            await Assert.ThrowsAsync<RequestFailedException>(async () =>
+            await Assert.ThrowsAsync<ActionFailedException>(async () =>
             {
                 await vehicleStore
                     .Version(blobs[1].VersionId!)

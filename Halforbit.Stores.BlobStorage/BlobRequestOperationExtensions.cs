@@ -61,61 +61,38 @@ public static class BlobRequestOperationExtensions
     {
 		if (q.BlobContainerClient is null) throw new ArgumentNullException(nameof(q.BlobContainerClient));
         
-        await foreach (var blobItem in q.BlobContainerClient.GetBlobsAsync(
+        await foreach (var blob in q.BlobContainerClient.GetBlobsAsync(
             q.IncludeMetadata ? BlobTraits.Metadata : default,
             q.IncludeVersions ? BlobStates.Version : default,
             prefix))
         {
             if (q.KeyMap is not null && 
-                !q.KeyMap.TryMapStringToKey(blobItem.Name, out var key))
+                !q.KeyMap.TryMapStringToKey(blob.Name, out var key))
             {
                 continue;
             }
 
             if (q.BlobType != BlobType.Unknown)
             {
-                if (q.BlobType != ConvertBlobType(blobItem.Properties.BlobType))
+                if (q.BlobType != blob.BlobType)
                 {
                     continue;
                 }
             }
 
             if (q.IfModifiedSince is not null &&
-                blobItem.Properties.LastModified > q.IfModifiedSince)
+                blob.LastModified > q.IfModifiedSince)
             {
                 continue;
             }
 
             if (q.IfUnmodifiedSince is not null &&
-                blobItem.Properties.LastModified <= q.IfUnmodifiedSince)
+                blob.LastModified <= q.IfUnmodifiedSince)
             {
                 continue;
             }
 
-            yield return new()
-            {
-                Name = blobItem.Name,
-                
-                ETag = blobItem.Properties.ETag?.ToString() ?? throw new ArgumentNullException("ETag"),
-                
-                VersionId = blobItem.VersionId,
-                
-                Metadata = blobItem.Metadata ?? new Dictionary<string, string>(),
-                
-                CreationTime = blobItem.Properties.CreatedOn?.UtcDateTime ?? throw new ArgumentNullException("CreatedOn"),
-                
-                LastModified = blobItem.Properties.LastModified?.UtcDateTime ?? throw new ArgumentNullException("LastModified"),
-                
-                BlobType = ConvertBlobType(blobItem.Properties.BlobType ?? throw new ArgumentNullException("BlobType")),
-                
-                ContentLength = blobItem.Properties.ContentLength ?? throw new ArgumentNullException("ContentLength"),
-                
-                ContentType = blobItem.Properties.ContentType ?? throw new ArgumentNullException("ContentType"),
-                
-                ContentEncoding = blobItem.Properties.ContentEncoding,
-
-                ContentHash = blobItem.Properties.ContentHash ?? throw new ArgumentNullException("ContentHash")
-            };
+            yield return blob;
         }
     }
 
@@ -230,7 +207,7 @@ public static class BlobRequestOperationExtensions
 
 		ms.Seek(0, SeekOrigin.Begin);
 
-        BlobContentInfo blobInfo;
+        BlobPutResult blobPutResult;
 
         var blobHttpHeaders = new BlobHttpHeaders
         {
@@ -244,7 +221,7 @@ public static class BlobRequestOperationExtensions
 
             try
             {
-                blobInfo = await q.BlobContainerClient
+                blobPutResult = await q.BlobContainerClient
                     .GetBlockBlobClient(blobName)
                     .UploadAsync(
                         content: ms,
@@ -265,18 +242,18 @@ public static class BlobRequestOperationExtensions
             }
         }
         
-        var eTag = blobInfo.ETag.ToString();
+        var eTag = blobPutResult.ETag.ToString();
 
         span?.SetAttribute("ETag", eTag);
 
-        span?.SetAttribute("VersionId", blobInfo.VersionId);
+        span?.SetAttribute("VersionId", blobPutResult.VersionId);
 
         return new PutResult
         {
             ETag = eTag,
             Name = blobName,
-            LastModified = blobInfo.LastModified.UtcDateTime,
-            VersionId = blobInfo.VersionId
+            LastModified = blobPutResult.LastModified.UtcDateTime,
+            VersionId = blobPutResult.VersionId
         };
 	}
 
@@ -371,7 +348,14 @@ public static class BlobRequestOperationExtensions
 
         if (q.VersionId is not null) c = c.WithVersion(q.VersionId);
 
-        return await c.DeleteIfExistsAsync();
+        try
+        {
+            return await c.DeleteIfExistsAsync();
+        }
+        catch (RequestFailedException rfex)
+        {
+            throw new ActionFailedException(rfex.Message, rfex);
+        }
     }
 
     public static async Task<bool> DeleteBlobAsync(
@@ -462,14 +446,14 @@ public static class BlobRequestOperationExtensions
             span?.SetAttribute("VersionId", q.VersionId);
         }
 
-        Response<BlobDownloadInfo> response;
+        BlobGetResult result;
 
         try
         {
-            response = await blobClient.DownloadAsync(
+            result = await blobClient.DownloadAsync(
                 conditions: GetBlobRequestConditions(q));
 
-            if (response.GetRawResponse().Status == 304)
+            if (result.Status == 304)
             {
                 if (q.IfModifiedSince is not null ||
                     q.IfUnmodifiedSince is not null)
@@ -504,9 +488,9 @@ public static class BlobRequestOperationExtensions
                 q.ContentSerializer, 
                 q.CompressionStrategy);
 
-            if (response.Value.Details.ContentLength > 0)
+            if (result.ContentLength > 0)
             {
-                value = await pipeline.ReadAndDeserializeAsync<TValue>(response.Value.Content);
+                value = await pipeline.ReadAndDeserializeAsync<TValue>(result.Content);
 
                 if (value is null)
                 {
@@ -519,68 +503,31 @@ public static class BlobRequestOperationExtensions
             value = (TValue)(object)None.Instance;
         }
 
-        var headers = response.GetRawResponse().Headers;
-
-        var metadata = default(IDictionary<string, string>?);
-
-        if (q.IncludeMetadata)
-        {
-            metadata = _recyclableDictionaryManager.Get();
-
-            foreach (var header in headers)
-            {
-                if (header.Name.StartsWith("x-ms-meta-"))
-                {
-                    metadata[header.Name["x-ms-meta-".Length..]] = header.Value;
-                }
-            }
-        }
-
         return new()
         {
             Name = blobName,
             
             _value = value,
             
-            ETag = headers.ETag?.ToString() ?? string.Empty,
+            ETag = result.ETag,
             
-            VersionId = headers.TryGetValue("x-ms-version-id", out var version) ? version : null,
+            VersionId = result.VersionId,
             
-            Metadata = metadata,
+            Metadata = result.Metadata,
             
-            CreationTime = headers.TryGetValue("x-ms-creation-time", out var creationTime) ?
-                DateTime.TryParse(creationTime, out var ct) ?
-                    ct :
-                    throw new ArgumentException("CreationTime") :
-                throw new ArgumentException("CreationTime"),
+            CreationTime = result.CreationTime,
             
-            LastModified = headers.TryGetValue("Last-Modified", out var lastModified) ?
-                DateTime.TryParse(lastModified, out var lm) ?
-                    lm :
-                    throw new ArgumentException("LastModified") :
-                throw new ArgumentException("LastModified"),
+            LastModified = result.LastModified,
             
-            BlobType = headers.TryGetValue("x-ms-blob-type", out var blobType) ?
-                Enum.Parse<BlobType>(blobType) :
-                BlobType.Unknown,
+            BlobType = result.BlobType,
             
-            ContentLength = headers.TryGetValue("Content-Length", out var contentLength) ? 
-                long.TryParse(contentLength, out var cl) ? 
-                    cl : 
-                    throw new ArgumentException("ContentLength") : 
-                throw new ArgumentException("ContentLength"),
+            ContentLength = result.ContentLength,
             
-            ContentType = headers.TryGetValue("Content-Type", out var contentType) ?
-                contentType :
-                throw new ArgumentException("ContentType"),
+            ContentType = result.ContentType,
             
-            ContentEncoding = headers.TryGetValue("Content-Encoding", out var contentEncoding) ? 
-                contentEncoding : 
-                null,
+            ContentEncoding = result.ContentEncoding,
             
-            ContentHash = headers.TryGetValue("Content-MD5", out var contentMd5) ? 
-                Convert.FromBase64String(contentMd5) : 
-                Array.Empty<byte>()
+            ContentHash = result.ContentHash
         };
     }
 
@@ -707,6 +654,13 @@ public static class BlobRequestOperationExtensions
             span?.SetAttribute("VersionId", q.VersionId);
         }
 
-        await blobClient.SetMetadataAsync(metadata);
+        try
+        {
+            await blobClient.SetMetadataAsync(metadata);
+        }
+        catch (RequestFailedException rfex)
+        {
+            throw new ActionFailedException(rfex.Message, rfex);
+        }
     }
 }

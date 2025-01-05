@@ -41,7 +41,7 @@ public static class BlobRequestBuilderExtensions
 
         if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient has not been created.");
 
-        var response = await q.BlobContainerClient.CreateIfNotExistsAsync();
+        /*var response = */await q.BlobContainerClient.CreateIfNotExistsAsync();
     }
 
     public static async Task DeleteContainerAsync(
@@ -51,7 +51,7 @@ public static class BlobRequestBuilderExtensions
 
 		if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient has not been created.");
 
-        await q.BlobContainerClient.DeleteIfExistsAsync();
+        /*var response = */await q.BlobContainerClient.DeleteIfExistsAsync();
 	}
 
 	public static IBlockBlobs BlockBlobs(

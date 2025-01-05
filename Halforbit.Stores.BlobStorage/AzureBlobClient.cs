@@ -17,16 +17,16 @@ class AzureBlobClient : IBlobClient
                 _blobClient.WithVersion(
                     versionId));
 
-    public Task<Response<bool>> DeleteIfExistsAsync(
+    public async Task</*Response<*/bool/*>*/> DeleteIfExistsAsync(
         /*DeleteSnapshotsOption snapshotsOption = DeleteSnapshotsOption.None, 
         BlobRequestConditions? conditions = null, 
         CancellationToken cancellationToken = default*/) =>
-            _blobClient.DeleteIfExistsAsync(
+            await _blobClient.DeleteIfExistsAsync(
                 /*snapshotsOption, 
                 conditions, 
                 cancellationToken*/);
 
-    public Task<Response<bool>> ExistsAsync(
+    public async Task</*Response<*/bool/*>*/> ExistsAsync(
         /*CancellationToken cancellationToken = default*/) => 
-            _blobClient.ExistsAsync(/*cancellationToken*/);
+            await _blobClient.ExistsAsync(/*cancellationToken*/);
 }

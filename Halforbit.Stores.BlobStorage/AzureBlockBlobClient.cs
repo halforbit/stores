@@ -19,32 +19,33 @@ class AzureBlockBlobClient : IBlockBlobClient
                 _blockBlobClient.WithVersion(
                     versionId));
 
-    public Task<Response<BlobDownloadInfo>> DownloadAsync(
+    public async Task<BlobPutResult/*Response<BlobContentInfo>*/> UploadAsync(
+        Stream content, 
+        BlobUploadOptions options/*, 
+        CancellationToken cancellationToken = default*/) =>
+            BlobPutResult.FromBlobContentInfo(await _blockBlobClient.UploadAsync(
+                content, 
+                options/*, 
+                cancellationToken*/));
+
+    public async Task<BlobGetResult/*Response<BlobDownloadInfo>*/> DownloadAsync(
         /*HttpRange range = default,*/
         BlobRequestConditions? conditions = null/*, 
         bool rangeGetContentHash = false, 
         CancellationToken cancellationToken = default*/) =>
-            _blockBlobClient.DownloadAsync(
-                /*range,*/
-                conditions: conditions/*,
-                rangeGetContentHash,
-                cancellationToken*/);
+            BlobGetResult.FromBlobDownloadInfoResponse(
+                await _blockBlobClient.DownloadAsync(
+                    /*range,*/
+                    conditions: conditions/*,
+                    rangeGetContentHash,
+                    cancellationToken*/));
 
-    public Task<Response<BlobInfo>> SetMetadataAsync(
+    public Task/*<Response<Blob>>*/ SetMetadataAsync(
         Metadata metadata/*, 
         BlobRequestConditions? conditions = null, 
         CancellationToken cancellationToken = default*/) =>
             _blockBlobClient.SetMetadataAsync(
                 metadata/*, 
                 conditions, 
-                cancellationToken*/);
-
-    public Task<Response<BlobContentInfo>> UploadAsync(
-        Stream content, 
-        BlobUploadOptions options/*, 
-        CancellationToken cancellationToken = default*/) =>
-            _blockBlobClient.UploadAsync(
-                content, 
-                options/*, 
                 cancellationToken*/);
 }
