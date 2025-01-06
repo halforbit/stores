@@ -1,5 +1,4 @@
-﻿using Azure.Storage.Blobs;
-using OpenTelemetry.Trace;
+﻿using OpenTelemetry.Trace;
 using System.Linq.Expressions;
 
 namespace Halforbit.Stores;
@@ -28,9 +27,13 @@ public static class BlobRequestBuilderExtensions
         {
             _ContainerName = name,
 
-            BlobContainerClient = new AzureBlobContainerClient(
-                q._ConnectionString ?? throw new ArgumentException("Connection string not specified."), 
-                name)
+            BlobContainerClient = q._ConnectionString is not null ?
+                new AzureBlobContainerClient(
+                    q._ConnectionString,
+                    name) :
+                q.InMemoryBlobStorageAccount is not null ?
+                    new InProcessBlobContainerClient(q.InMemoryBlobStorageAccount, name) :
+                    throw new ArgumentException("Connection string not provided.")
         };
     }
 

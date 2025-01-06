@@ -1,5 +1,4 @@
-﻿using Azure.Storage.Blobs;
-using OpenTelemetry.Trace;
+﻿using OpenTelemetry.Trace;
 
 namespace Halforbit.Stores;
 
@@ -10,6 +9,14 @@ public static class BlobRequest
         return new BlobRequest<None, None>
         {
             _ConnectionString = connectionString
+        };
+    }
+
+    public static IBlobStorageAccount InProcess(InMemoryBlobStorageAccount inMemoryBlobStorageAccount)
+    {
+        return new BlobRequest<None, None>
+        {
+            InMemoryBlobStorageAccount = inMemoryBlobStorageAccount
         };
     }
 }
@@ -29,6 +36,8 @@ record BlobRequest<TKey, TValue> :
     IEmptyBlockBlob
 {
     public Tracer? Tracer { get; init; }
+
+    public InMemoryBlobStorageAccount? InMemoryBlobStorageAccount { get; init; }
 
     public string? _ConnectionString { get; init; }
 
@@ -75,6 +84,7 @@ record BlobRequest<TKey, TValue> :
         return new BlobRequest<TK, TV>
         {
             Tracer = Tracer,
+            InMemoryBlobStorageAccount = InMemoryBlobStorageAccount,
             _ConnectionString = _ConnectionString,
             _ContainerName = _ContainerName,
             BlobContainerClient = BlobContainerClient,
@@ -102,6 +112,7 @@ record BlobRequest<TKey, TValue> :
         return new BlobRequest<None, TValue1>
         {
             Tracer = Tracer,
+            InMemoryBlobStorageAccount = InMemoryBlobStorageAccount,
 			_ConnectionString = _ConnectionString,
             _ContainerName = _ContainerName,
             BlobContainerClient = BlobContainerClient,
@@ -129,6 +140,7 @@ record BlobRequest<TKey, TValue> :
         return new BlobRequest<TKey, TValue1>
         {
             Tracer = Tracer,
+            InMemoryBlobStorageAccount = InMemoryBlobStorageAccount,
 			_ConnectionString = _ConnectionString,
             _ContainerName = _ContainerName,
             BlobContainerClient = BlobContainerClient,

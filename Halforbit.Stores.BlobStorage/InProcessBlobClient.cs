@@ -16,6 +16,8 @@ public class InProcessBlobClient : IBlobClient
         InMemoryBlobContainer blobContainer)
     {
         _blobName = blobName;
+
+        _versionId = versionId;
         
         _blobContainer = blobContainer;
     }
@@ -37,6 +39,15 @@ public class InProcessBlobClient : IBlobClient
         }
         else if (_blobContainer.Blobs.TryGetValue(_blobName, out var blob))
         {
+            var latestVersion = blob.Versions
+                .OrderByDescending(v => v.Value.Blob.LastModified)
+                .FirstOrDefault();
+            
+            if (_versionId == latestVersion.Value.Blob.VersionId)
+            {
+                throw new ActionFailedException("Cannot delete the root version of a blob.", null);
+            }
+
             var removed = blob.Versions.TryRemove(_versionId, out _);
 
             if (removed && !blob.Versions.Any())

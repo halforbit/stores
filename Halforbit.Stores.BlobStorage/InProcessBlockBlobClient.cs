@@ -84,21 +84,49 @@ class InProcessBlockBlobClient : IBlockBlobClient
 
             var latestETag = latest?.Blob.ETag;
 
-            if (ifMatch is not null && ifMatch.ToString() != latestETag)
+            if (ifMatch is not null)
             {
-                throw new PreconditionFailedException();
+                if ((ifMatch.Value.ToString() != "*" && ifMatch.ToString() != latestETag) ||
+                    latestETag is null)
+                {
+                    throw new PreconditionFailedException();
+                }
             }
 
-            if (ifNoneMatch is not null && ifNoneMatch.ToString() == latestETag)
+            if (ifNoneMatch is not null)                
+            {
+                if (ifNoneMatch.ToString() == latestETag ||
+                    (ifNoneMatch.ToString() == "*" && inMemoryBlob.Versions.Any()))
+                {
+                    throw new PreconditionFailedException();
+                }
+            }
+        }
+
+        var ifModifiedSince = options.Conditions.IfModifiedSince;
+
+        if (ifModifiedSince is not null)
+        {
+            if (inMemoryBlob.Versions.IsEmpty ||
+                !(inMemoryBlob.Versions
+                    .OrderByDescending(v => v.Value.Blob.LastModified)
+                    .First().Value.Blob.LastModified > ifModifiedSince.Value.DateTime))
             {
                 throw new PreconditionFailedException();
             }
         }
 
-        if (options.Conditions.IfModifiedSince is not null) throw new NotImplementedException();
+        var ifUnmodifiedSince = options.Conditions.IfUnmodifiedSince;
 
-        if (options.Conditions.IfUnmodifiedSince is not null) throw new NotImplementedException();
-
+        if (ifUnmodifiedSince is not null)
+        {
+            if (inMemoryBlob.Versions.Any(
+                v => v.Value.Blob.LastModified > ifUnmodifiedSince.Value.DateTime))
+            {
+                throw new PreconditionFailedException();
+            }
+        }
+                
         var blob = new Blob 
         {
             Name = _blobName,
@@ -107,7 +135,7 @@ class InProcessBlockBlobClient : IBlockBlobClient
             
             VersionId = blobPutResult.VersionId,
             
-            Metadata = options.Metadata,
+            Metadata = options.Metadata?.ToDictionary(kv => kv.Key, kv => kv.Value),
             
             CreationTime = timestamp,
             
@@ -146,11 +174,28 @@ class InProcessBlockBlobClient : IBlockBlobClient
             _blobContainer, 
             _blobName, _versionId);
 
+        if (conditions is not null)
+        {
+            var ifMatch = conditions.IfMatch;
+
+            if (ifMatch is not null)
+            {
+                if (version is null)
+                {
+                    throw new PreconditionFailedException();
+                }
+
+                if (ifMatch.ToString() != "*" &&  ifMatch.ToString() != version.Blob.ETag)
+                {
+                    throw new PreconditionFailedException();
+                }
+            }
+        }
+
         if (version is null)
         {
             return null;
         }
-
         var blob = version.Blob;
 
         var content = version.Content;

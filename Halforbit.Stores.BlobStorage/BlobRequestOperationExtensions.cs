@@ -446,12 +446,17 @@ public static class BlobRequestOperationExtensions
             span?.SetAttribute("VersionId", q.VersionId);
         }
 
-        BlobGetResult result;
+        BlobGetResult? result;
 
         try
         {
             result = await blobClient.DownloadAsync(
                 conditions: GetBlobRequestConditions(q));
+
+            if (result is null)
+            {
+                return null;
+            }
 
             if (result.Status == 304)
             {
