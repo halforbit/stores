@@ -1,5 +1,7 @@
 ﻿//using Azure;
 //using Azure.Storage.Blobs;
+using System.Diagnostics;
+
 namespace Halforbit.Stores;
 
 public class InProcessBlobClient : IBlobClient
@@ -30,51 +32,74 @@ public class InProcessBlobClient : IBlobClient
             _blobContainer);
     }
 
-    public Task</*Response<*/bool/*>*/> DeleteIfExistsAsync()
+    public async Task</*Response<*/bool/*>*/> DeleteIfExistsAsync()
     {
-        if (_versionId is null)
-        {
-            return Task.FromResult(
-                _blobContainer.Blobs.TryRemove(_blobName, out _));
-        }
-        else if (_blobContainer.Blobs.TryGetValue(_blobName, out var blob))
-        {
-            var latestVersion = blob.Versions
-                .OrderByDescending(v => v.Value.Blob.LastModified)
-                .FirstOrDefault();
-            
-            if (_versionId == latestVersion.Value.Blob.VersionId)
-            {
-                throw new ActionFailedException("Cannot delete the root version of a blob.", null);
-            }
+        var start = Stopwatch.GetTimestamp();
 
-            var removed = blob.Versions.TryRemove(_versionId, out _);
-
-            if (removed && !blob.Versions.Any())
-            {
-                _blobContainer.Blobs.TryRemove(_blobName, out _);
-            }
-
-            return Task.FromResult(removed);
-        }
-
-        return Task.FromResult(false);
-    }
-
-    public Task</*Response<*/bool/*>*/> ExistsAsync()
-    {
-        if (_blobContainer.Blobs.TryGetValue(_blobName, out var blob))
+        try
         {
             if (_versionId is null)
             {
-                return Task.FromResult(!blob.Versions.IsEmpty);
+                return _blobContainer.Blobs.TryRemove(_blobName, out _);
             }
-            else
+            else if (_blobContainer.Blobs.TryGetValue(_blobName, out var blob))
             {
-                blob.Versions.ContainsKey(_versionId);
-            }
-        }
+                var latestVersion = blob.Versions
+                    .OrderByDescending(v => v.Value.Blob.LastModified)
+                    .FirstOrDefault();
+            
+                if (_versionId == latestVersion.Value.Blob.VersionId)
+                {
+                    throw new ActionFailedException("Cannot delete the root version of a blob.", null);
+                }
 
-        return Task.FromResult(false);
+                var removed = blob.Versions.TryRemove(_versionId, out _);
+
+                if (removed && !blob.Versions.Any())
+                {
+                    _blobContainer.Blobs.TryRemove(_blobName, out _);
+                }
+
+                return removed;
+            }
+
+            return false;
+        }
+        finally
+        {
+            await InProcessDelay.SimulateDelayAsync(
+                Stopwatch.GetElapsedTime(start),
+                1,
+                0);
+        }
+    }
+
+    public async Task</*Response<*/bool/*>*/> ExistsAsync()
+    {
+        var start = Stopwatch.GetTimestamp();
+
+        try
+        {
+            if (_blobContainer.Blobs.TryGetValue(_blobName, out var blob))
+            {
+                if (_versionId is null)
+                {
+                    return !blob.Versions.IsEmpty;
+                }
+                else
+                {
+                    blob.Versions.ContainsKey(_versionId);
+                }
+            }
+
+            return false;
+        }
+        finally
+        {
+            await InProcessDelay.SimulateDelayAsync(
+                Stopwatch.GetElapsedTime(start),
+                1, 
+                0);
+        }
     }
 }

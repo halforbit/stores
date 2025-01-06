@@ -1,6 +1,7 @@
 ﻿//using Azure;
 //using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using System.Diagnostics;
 
 namespace Halforbit.Stores;
 
@@ -19,12 +20,14 @@ class InProcessBlobContainerClient : IBlobContainerClient
         _blobContainerName = blobContainerName;
     }
 
-    public Task/*<Response<BlobContainerInfo>>*/ CreateIfNotExistsAsync(
+    public async Task/*<Response<BlobContainerInfo>>*/ CreateIfNotExistsAsync(
         /*PublicAccessType publicAccessType = PublicAccessType.None, 
         Metadata? metadata = null, 
         BlobContainerEncryptionScopeOptions? encryptionScopeOptions = null, 
         CancellationToken cancellationToken = default*/)
     {
+        var start = Stopwatch.GetTimestamp();
+
         _blobStorageAccount.Containers.TryAdd(
             _blobContainerName, 
             new InMemoryBlobContainer
@@ -34,19 +37,21 @@ class InProcessBlobContainerClient : IBlobContainerClient
                 Blobs = []
             });
 
-        return Task.CompletedTask;
+        await InProcessDelay.SimulateDelayAsync(Stopwatch.GetElapsedTime(start), 1, 0);
     }
 
-    public Task/*<Response<bool>>*/ DeleteIfExistsAsync(
+    public async Task/*<Response<bool>>*/ DeleteIfExistsAsync(
         /*BlobRequestConditions? conditions = null, 
         CancellationToken cancellationToken = default*/)
     {
+        var start = Stopwatch.GetTimestamp();
+
         _blobStorageAccount.Containers.TryRemove(_blobContainerName, out _);
 
-        return Task.CompletedTask;
+        await InProcessDelay.SimulateDelayAsync(Stopwatch.GetElapsedTime(start), 1, 0);
     }
 
-    public IAsyncEnumerable/*AsyncPageable*/<Blob/*Item*/> GetBlobsAsync(
+    public async IAsyncEnumerable/*AsyncPageable*/<Blob/*Item*/> GetBlobsAsync(
         /* BlobTraits.Metadata
         */BlobTraits traits = BlobTraits.None,
         /* BlobStates.Version
@@ -54,10 +59,14 @@ class InProcessBlobContainerClient : IBlobContainerClient
         string? prefix = null/*, 
         CancellationToken cancellationToken = default*/)
     {
+        var start = Stopwatch.GetTimestamp();
+
         if (!_blobStorageAccount.Containers.TryGetValue(_blobContainerName, out var blobContainer))
         {
-            return Array.Empty<Blob>().ToAsyncEnumerable();
+            yield break;
         }
+
+        var count = 0d;
 
         var results = new List<Blob>();
 
@@ -74,11 +83,18 @@ class InProcessBlobContainerClient : IBlobContainerClient
             
             foreach (var version in versions)
             {
-                results.Add(version.Value.Blob);
+                yield return version.Value.Blob;
+
+                count++;
             }
         }
 
-        return results.ToAsyncEnumerable();
+        var pageCount = (int)Math.Ceiling(count / 5000);
+
+        await InProcessDelay.SimulateDelayAsync(
+            Stopwatch.GetElapsedTime(start),
+            pageCount,
+            pageCount * 5_000_000);
     }
 
     public IBlobClient GetBlobClient(

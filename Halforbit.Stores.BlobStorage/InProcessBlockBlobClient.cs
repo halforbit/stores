@@ -2,6 +2,7 @@
 //using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.IO;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -39,10 +40,12 @@ class InProcessBlockBlobClient : IBlockBlobClient
             _blobContainer);
     }
 
-    public Task<BlobPutResult/*Response<BlobContentInfo>*/> UploadAsync(
+    public async Task<BlobPutResult/*Response<BlobContentInfo>*/> UploadAsync(
         Stream content, 
         BlobUploadOptions options)
     {
+        var start = Stopwatch.GetTimestamp();
+
         var timestamp = InProcessTimestampHelper.GetTimestamp();
 
         var memoryStream = new MemoryStream();
@@ -164,12 +167,19 @@ class InProcessBlockBlobClient : IBlockBlobClient
             throw new ArgumentException("Version already exists.");
         }
 
-        return Task.FromResult(blobPutResult);
+        await InProcessDelay.SimulateDelayAsync(
+            Stopwatch.GetElapsedTime(start),
+            1,
+            contentArray.Length);
+
+        return blobPutResult;
     }
 
     public async Task<BlobGetResult?/*Response<BlobDownloadInfo>*/> DownloadAsync(
         BlobRequestConditions? conditions = null)
     {
+        var start = Stopwatch.GetTimestamp();
+
         var (_, version, isRoot) = ResolveBlobVersion(
             _blobContainer, 
             _blobName, _versionId);
@@ -209,6 +219,11 @@ class InProcessBlockBlobClient : IBlockBlobClient
 
         contentStream.Seek(0, SeekOrigin.Begin);
 
+        await InProcessDelay.SimulateDelayAsync(
+            Stopwatch.GetElapsedTime(start),
+            1,
+            blob.ContentLength);
+
         return new()
         { 
             Content = contentStream,
@@ -237,9 +252,11 @@ class InProcessBlockBlobClient : IBlockBlobClient
         };
     }
 
-    public Task/*<Response<BlobInfo>>*/ SetMetadataAsync(
+    public async Task/*<Response<BlobInfo>>*/ SetMetadataAsync(
         IDictionary<string, string> metadata)
     {
+        var start = Stopwatch.GetTimestamp();
+
         var (blob, version, isRoot) = ResolveBlobVersion(
             _blobContainer,
             _blobName,
@@ -260,9 +277,12 @@ class InProcessBlockBlobClient : IBlockBlobClient
         blob.Versions[versionId] = version with
         {
             Blob = version.Blob with { Metadata = metadata }
-        }; 
+        };
 
-        return Task.CompletedTask;
+        await InProcessDelay.SimulateDelayAsync(
+            Stopwatch.GetElapsedTime(start),
+            1,
+            0);
     }
 
     static (InMemoryBlob? Blob, InMemoryBlobVersion? Version, bool IsRoot) ResolveBlobVersion(
