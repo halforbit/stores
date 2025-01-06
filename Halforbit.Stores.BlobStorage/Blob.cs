@@ -1,4 +1,6 @@
-﻿namespace Halforbit.Stores;
+﻿using Azure.Storage.Blobs.Models;
+
+namespace Halforbit.Stores;
 
 public record Blob
 {

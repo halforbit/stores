@@ -1,5 +1,4 @@
-﻿using Azure.Storage.Blobs;
-using OpenTelemetry.Trace;
+﻿using OpenTelemetry.Trace;
 using System.Linq.Expressions;
 
 namespace Halforbit.Stores;
@@ -28,7 +27,13 @@ public static class BlobRequestBuilderExtensions
         {
             _ContainerName = name,
 
-            BlobContainerClient = new BlobContainerClient(q._ConnectionString, name)
+            BlobContainerClient = q._ConnectionString is not null ?
+                new AzureBlobContainerClient(
+                    q._ConnectionString,
+                    name) :
+                q.InMemoryBlobStorageAccount is not null ?
+                    new InProcessBlobContainerClient(q.InMemoryBlobStorageAccount, name) :
+                    throw new ArgumentException("Connection string not provided.")
         };
     }
 
@@ -39,7 +44,7 @@ public static class BlobRequestBuilderExtensions
 
         if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient has not been created.");
 
-        var response = await q.BlobContainerClient.CreateIfNotExistsAsync();
+        /*var response = */await q.BlobContainerClient.CreateIfNotExistsAsync();
     }
 
     public static async Task DeleteContainerAsync(
@@ -49,7 +54,7 @@ public static class BlobRequestBuilderExtensions
 
 		if (q.BlobContainerClient is null) throw new Exception("BlobContainerClient has not been created.");
 
-        await q.BlobContainerClient.DeleteIfExistsAsync();
+        /*var response = */await q.BlobContainerClient.DeleteIfExistsAsync();
 	}
 
 	public static IBlockBlobs BlockBlobs(

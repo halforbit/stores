@@ -1,4 +1,3 @@
-using Azure;
 using MessagePack;
 using Microsoft.Extensions.Configuration;
 
@@ -11,14 +10,18 @@ public class BlobIntegrationTests
 		.Build()
 		.GetConnectionString("IntegrationTest")!;
 
-    [Fact]
-    public async Task Single_Success()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Single_Success(bool inProcess)
     {
+        var blobStorageAccount = inProcess ?
+            BlobRequest.InProcess(new InMemoryBlobStorageAccount()) :
+            BlobRequest.ConnectionString(ConnectionString);
+
         var containerName = $"test-container-{Guid.NewGuid():N}";
 
-        var container = BlobRequest
-            .ConnectionString(ConnectionString)
-            .Container(containerName);
+        var container = blobStorageAccount.Container(containerName);
 
         await container.CreateContainerIfNotExistsAsync();
 
@@ -132,14 +135,18 @@ public class BlobIntegrationTests
 		}
 	}
 
-	[Fact]
-	public async Task CompositeKeyed_Success()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CompositeKeyed_Success(bool inProcess)
 	{
-		var containerName = $"test-container-{Guid.NewGuid():N}";
+        var blobStorageAccount = inProcess ?
+            BlobRequest.InProcess(new InMemoryBlobStorageAccount()) :
+            BlobRequest.ConnectionString(ConnectionString);
+        
+        var containerName = $"test-container-{Guid.NewGuid():N}";
 
-		var container = BlobRequest
-			.ConnectionString(ConnectionString)
-			.Container(containerName);
+		var container = blobStorageAccount.Container(containerName);
 
 		await container.CreateContainerIfNotExistsAsync();
 
@@ -233,14 +240,18 @@ public class BlobIntegrationTests
 		}
 	}
 
-	[Fact]
-	public async Task SimpleKeyed_Success()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SimpleKeyed_Success(bool inProcess)
 	{
-		var containerName = $"test-container-{Guid.NewGuid():N}";
+        var blobStorageAccount = inProcess ?
+            BlobRequest.InProcess(new InMemoryBlobStorageAccount()) :
+            BlobRequest.ConnectionString(ConnectionString);
+        
+        var containerName = $"test-container-{Guid.NewGuid():N}";
 
-		var container = BlobRequest
-			.ConnectionString(ConnectionString)
-			.Container(containerName);
+		var container = blobStorageAccount.Container(containerName);
 
 		await container.CreateContainerIfNotExistsAsync();
 
@@ -410,14 +421,18 @@ public class BlobIntegrationTests
 		}
 	}
 
-    [Fact]
-    public async Task Empty_SimpleKeyed_Success()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Empty_SimpleKeyed_Success(bool inProcess)
     {
+        var blobStorageAccount = inProcess ?
+            BlobRequest.InProcess(new InMemoryBlobStorageAccount()) :
+            BlobRequest.ConnectionString(ConnectionString);
+
         var containerName = $"test-container-{Guid.NewGuid():N}";
 
-        var container = BlobRequest
-            .ConnectionString(ConnectionString)
-            .Container(containerName);
+        var container = blobStorageAccount.Container(containerName);
 
         await container.CreateContainerIfNotExistsAsync();
 
@@ -562,14 +577,18 @@ public class BlobIntegrationTests
     }
 
 
-    [Fact]
-    public async Task Empty_Single_Success()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Empty_Single_Success(bool inProcess)
     {
+        var blobStorageAccount = inProcess ?
+            BlobRequest.InProcess(new InMemoryBlobStorageAccount()) :
+            BlobRequest.ConnectionString(ConnectionString);
+
         var containerName = $"test-container-{Guid.NewGuid():N}";
 
-        var container = BlobRequest
-            .ConnectionString(ConnectionString)
-            .Container(containerName);
+        var container = blobStorageAccount.Container(containerName);
 
         await container.CreateContainerIfNotExistsAsync();
 
@@ -675,14 +694,18 @@ public class BlobIntegrationTests
         }
     }
 
-    [Fact]
-    public async Task SerializationError_Throws()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SerializationError_Throws(bool inProcess)
     {
+        var blobStorageAccount = inProcess ?
+            BlobRequest.InProcess(new InMemoryBlobStorageAccount()) :
+            BlobRequest.ConnectionString(ConnectionString);
+
         var containerName = $"test-container-{Guid.NewGuid():N}";
 
-        var container = BlobRequest
-            .ConnectionString(ConnectionString)
-            .Container(containerName);
+        var container = blobStorageAccount.Container(containerName);
 
         await container.CreateContainerIfNotExistsAsync();
 
@@ -710,14 +733,18 @@ public class BlobIntegrationTests
 		}
 	}
 
-	[Fact]
-	public async Task MatchETag_Success()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task MatchETag_Success(bool inProcess)
 	{
+        var blobStorageAccount = inProcess ?
+            BlobRequest.InProcess(new InMemoryBlobStorageAccount()) :
+            BlobRequest.ConnectionString(ConnectionString);
+
         var containerName = $"test-container-{Guid.NewGuid():N}";
 
-        var container = BlobRequest
-            .ConnectionString(ConnectionString)
-            .Container(containerName);
+        var container = blobStorageAccount.Container(containerName);
 
         await container.CreateContainerIfNotExistsAsync();
 
@@ -760,14 +787,18 @@ public class BlobIntegrationTests
         }
     }
 
-    [Fact]
-    public async Task UpdateMetadata_Versioned_Failure()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UpdateMetadata_Versioned_Failure(bool inProcess)
     {
+        var blobStorageAccount = inProcess ?
+            BlobRequest.InProcess(new InMemoryBlobStorageAccount()) :
+            BlobRequest.ConnectionString(ConnectionString);
+
         var containerName = $"test-container-{Guid.NewGuid():N}";
 
-        var container = BlobRequest
-            .ConnectionString(ConnectionString)
-            .Container(containerName);
+        var container = blobStorageAccount.Container(containerName);
 
         await container.CreateContainerIfNotExistsAsync();
 
@@ -834,7 +865,7 @@ public class BlobIntegrationTests
 
             metadata.Add("__success", "true");
 
-            await Assert.ThrowsAsync<RequestFailedException>(async () =>
+            await Assert.ThrowsAsync<ActionFailedException>(async () =>
             {
                 await vehicleStore
                     .Version(blobs[0].VersionId!)
@@ -867,15 +898,18 @@ public class BlobIntegrationTests
         }
     }
 
-
-    [Fact]
-    public async Task Delete_Versioned_Failure()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Delete_Versioned_Failure(bool inProcess)
     {
+        var blobStorageAccount = inProcess ?
+            BlobRequest.InProcess(new InMemoryBlobStorageAccount()) :
+            BlobRequest.ConnectionString(ConnectionString);
+
         var containerName = $"test-container-{Guid.NewGuid():N}";
 
-        var container = BlobRequest
-            .ConnectionString(ConnectionString)
-            .Container(containerName);
+        var container = blobStorageAccount.Container(containerName);
 
         await container.CreateContainerIfNotExistsAsync();
 
@@ -897,30 +931,33 @@ public class BlobIntegrationTests
                 .Key<Guid>(k => $"vehicles/{k:N}")
                 .Value<Vehicle>();
 
-            var transactionId1 = $"{Guid.NewGuid():N}";
+            var transactionIdA = $"{Guid.NewGuid():N}";
 
-            var metadata = new Dictionary<string, string>
+            var metadataA = new Dictionary<string, string>
             {
-                ["__transaction"] = transactionId1
+                ["__transaction"] = transactionIdA
             };
 
-            var putResult = await vehicleStore.UpsertBlobAsync(
+            var putResultA = await vehicleStore.UpsertBlobAsync(
                 id,
                 value,
-                metadata);
+                metadataA);
 
-            var eTag = putResult.ETag;
+            var eTag = putResultA.ETag;
 
-            var transactionId2 = $"{Guid.NewGuid():N}";
+            var transactionIdB = $"{Guid.NewGuid():N}";
 
-            metadata["__transaction"] = transactionId2;
+            var metadataB = new Dictionary<string, string>
+            {
+                ["__transaction"] = transactionIdB
+            };
 
-            await vehicleStore
+            var putResultB = await vehicleStore
                 .IfMatch(eTag)
                 .UpsertBlobAsync(
                     id,
                     value,
-                    metadata);
+                    metadataB);
 
             var blobs = new List<Blob>();
 
@@ -934,15 +971,15 @@ public class BlobIntegrationTests
 
             Assert.Equal(2, blobs.Count);
 
-            Assert.Equal(transactionId1, blobs[0].Metadata?["__transaction"]);
+            Assert.Equal(transactionIdA, blobs[0].Metadata?["__transaction"]);
 
-            Assert.Equal(transactionId2, blobs[1].Metadata?["__transaction"]);
+            Assert.Equal(transactionIdB, blobs[1].Metadata?["__transaction"]);
 
             Assert.NotNull(blobs[1].VersionId);
 
-            metadata.Add("__success", "true");
+            metadataA.Add("__success", "true");
 
-            await Assert.ThrowsAsync<RequestFailedException>(async () =>
+            await Assert.ThrowsAsync<ActionFailedException>(async () =>
             {
                 await vehicleStore
                     .Version(blobs[1].VersionId!)
