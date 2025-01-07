@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 namespace Halforbit.Stores;
 
-public class InProcessBlobClient : IBlobClient
+class InProcessBlobClient : IBlobClient
 {
     readonly string _blobName;
 

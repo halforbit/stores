@@ -1,5 +1,6 @@
 using MessagePack;
 using Microsoft.Extensions.Configuration;
+using System.Text;
 
 namespace Halforbit.Stores.Tests;
 
@@ -239,6 +240,130 @@ public class BlobIntegrationTests
 			await container.DeleteContainerAsync();
 		}
 	}
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CompositeKeyed_NoSerialization_Success(bool inProcess)
+    {
+        var blobStorageAccount = inProcess ?
+            BlobRequest.InProcess(new InMemoryBlobStorageAccount()) :
+            BlobRequest.ConnectionString(ConnectionString);
+
+        var containerName = $"test-container-{Guid.NewGuid():N}";
+
+        var container = blobStorageAccount.Container(containerName);
+
+        await container.CreateContainerIfNotExistsAsync();
+
+        try
+        {
+            var id = (
+                ProjectId: Guid.NewGuid(),
+                SegmentId: 42,
+                VehicleId: Guid.NewGuid());
+
+            var value = new UTF8Encoding(false).GetBytes("Hello, world!");
+
+            var vehiclesStore = container
+                .BlockBlobs()
+                .NoSerialization()
+                .Key<(Guid ProjectId, int SegmentId, Guid TableId)>(k => $"vehicles/{k.ProjectId:N}/{k.SegmentId}/{k.TableId:N}")
+                .Value<byte[]>()
+                .WithMetadata();
+
+            var existsA = await vehiclesStore.BlobExistsAsync(id);
+
+            Assert.False(existsA);
+
+            var deleteA = await vehiclesStore.DeleteBlobAsync(id);
+
+            Assert.False(deleteA);
+
+            var getA = await vehiclesStore.GetBlobOrNullAsync(id);
+
+            Assert.Null(getA);
+
+            var putResult = await vehiclesStore.UpsertBlobAsync(
+                id,
+                value,
+                new Dictionary<string, string>
+                {
+                    ["transaction"] = $"{Guid.NewGuid():N}"
+                });
+
+            Assert.False(string.IsNullOrWhiteSpace(putResult.ETag));
+
+            Assert.False(string.IsNullOrWhiteSpace(putResult.VersionId));
+
+            var existsB = await vehiclesStore.BlobExistsAsync(id);
+
+            Assert.True(existsB);
+
+            var getB = await vehiclesStore.GetBlobOrNullAsync(id);
+
+            Assert.NotNull(getB);
+
+            Assert.True(ArraysAreEqual(value, getB.Value));
+
+            var blobs = new List<Blob>();
+
+            await foreach (var b in vehiclesStore.EnumerateBlobsAsync((id.ProjectId, id.SegmentId)))
+            {
+                blobs.Add(b);
+            }
+
+            Assert.Single(blobs);
+
+            blobs.Clear();
+
+            await foreach (var b in vehiclesStore.EnumerateBlobsAsync(id.ProjectId))
+            {
+                blobs.Add(b);
+            }
+
+            Assert.Single(blobs);
+
+            var deleteB = await vehiclesStore.DeleteBlobAsync(id);
+
+            Assert.True(deleteB);
+
+            var deleteC = await vehiclesStore.DeleteBlobAsync(id);
+
+            Assert.False(deleteC);
+
+            var getC = await vehiclesStore.GetBlobOrNullAsync(id);
+
+            Assert.Null(getC);
+        }
+        finally
+        {
+            await container.DeleteContainerAsync();
+        }
+    }
+
+    static bool ArraysAreEqual(byte[] a, byte[] b)
+    {
+        if (a == null)
+        {
+            return b == null;
+        }
+
+        if (a.Length != b.Length)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < a.Length; i++)
+        {
+            if (a[i] != b[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     [Theory]
     [InlineData(false)]

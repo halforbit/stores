@@ -73,6 +73,12 @@ public static class BlobRequestBuilderExtensions
             ContentTypeExtension = ".json"
         };
 
+    public static ISerializedBlockBlobs NoSerialization(
+        this IBlockBlobs request) => (BlobRequest<None, None>)request with
+        {
+            ContentSerializer = new NoSerializerStrategy(),
+        };
+
     public static ICompressedBlockBlobs GZipCompression(
         this ISerializedBlockBlobs request) => (BlobRequest<None, None>)request with
         {
