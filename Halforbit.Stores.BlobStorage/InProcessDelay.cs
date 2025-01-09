@@ -32,7 +32,7 @@ static class InProcessDelay
         }
         else
         {
-            throw new TimeoutException("Run time took longer than delay to simulate.");
+            //throw new TimeoutException("Run time took longer than delay to simulate.");
         }
     }
 
