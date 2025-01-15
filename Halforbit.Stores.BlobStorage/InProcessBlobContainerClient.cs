@@ -78,8 +78,8 @@ class InProcessBlobContainerClient : IBlobContainerClient
             }
 
             var versions = states.HasFlag(BlobStates.Version) ?
-                blob.Value.Versions.OrderBy(kv => kv.Value.Blob.LastModified) :
-                blob.Value.Versions.OrderByDescending(kv => kv.Value.Blob.LastModified);
+                blob.Value.Versions.OrderBy(kv => kv.Value.Blob.VersionId) :
+                blob.Value.Versions.OrderByDescending(kv => kv.Value.Blob.VersionId).Take(1);
             
             foreach (var version in versions)
             {
