@@ -1,5 +1,6 @@
 ﻿//using Azure;
 //using Azure.Storage.Blobs;
+using Azure;
 using Azure.Storage.Blobs.Models;
 using Microsoft.IO;
 using System.Diagnostics;
@@ -82,14 +83,14 @@ class InProcessBlockBlobClient : IBlockBlobClient
         if (ifMatch is not null || ifNoneMatch is not null)
         {
             var latest = inMemoryBlob.Versions.Values
-                .OrderByDescending(v => v.Blob.LastModified)
+                .OrderByDescending(v => v.Blob.VersionId)
                 .FirstOrDefault();
 
             var latestETag = latest?.Blob.ETag;
 
             if (ifMatch is not null)
             {
-                if ((ifMatch.Value.ToString() != "*" && ifMatch.ToString() != latestETag) ||
+                if ((ifMatch.Value.ToString() != "*" && new ETag(ifMatch.ToString()) != new ETag(latestETag)) ||
                     latestETag is null)
                 {
                     throw new PreconditionFailedException();
@@ -98,7 +99,7 @@ class InProcessBlockBlobClient : IBlockBlobClient
 
             if (ifNoneMatch is not null)                
             {
-                if (ifNoneMatch.ToString() == latestETag ||
+                if (new ETag(ifNoneMatch.ToString()) == new ETag(latestETag) ||
                     (ifNoneMatch.ToString() == "*" && inMemoryBlob.Versions.Any()))
                 {
                     throw new PreconditionFailedException();
@@ -206,6 +207,7 @@ class InProcessBlockBlobClient : IBlockBlobClient
         {
             return null;
         }
+
         var blob = version.Blob;
 
         var content = version.Content;
