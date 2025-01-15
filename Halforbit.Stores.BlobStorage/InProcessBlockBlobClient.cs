@@ -305,7 +305,7 @@ class InProcessBlockBlobClient : IBlockBlobClient
         }
 
         var latest = versions
-            .OrderByDescending(v => v.Value.Blob.LastModified)
+            .OrderByDescending(v => v.Value.Blob.VersionId)
             .First().Value;
 
         if (versionId is not null)
