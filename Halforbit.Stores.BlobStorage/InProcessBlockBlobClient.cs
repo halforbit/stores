@@ -156,17 +156,23 @@ class InProcessBlockBlobClient : IBlockBlobClient
             ContentHash = []
         };
 
-        if (!inMemoryBlob.Versions.TryAdd(
-            blobPutResult.VersionId, 
-            new InMemoryBlobVersion
-            {
-                Blob = blob,
+        //if (!inMemoryBlob.Versions.TryAdd(
+        //    blobPutResult.VersionId, 
+        //    new InMemoryBlobVersion
+        //    {
+        //        Blob = blob,
 
-                Content = contentArray
-            }))
+        //        Content = contentArray
+        //    }))
+        //{
+        //    throw new ArgumentException("Version already exists.");
+        //}
+
+        inMemoryBlob.Versions[blobPutResult.VersionId] = new InMemoryBlobVersion
         {
-            throw new ArgumentException("Version already exists.");
-        }
+            Blob = blob,
+            Content = contentArray
+        };
 
         await InProcessDelay.SimulateDelayAsync(
             Stopwatch.GetElapsedTime(start),
