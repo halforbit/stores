@@ -365,15 +365,6 @@ class InProcessBlockBlobClient : IBlockBlobClient
 
     static string GenerateVersionId(DateTime timestamp)
     {
-        using var sha256 = SHA256.Create();
-
-        // Convert the timestamp to ISO 8601 format and encode as bytes.
-        var timestampBytes = Encoding.UTF8.GetBytes(timestamp.ToString("o"));
-
-        // Compute the hash of the timestamp.
-        var hashBytes = sha256.ComputeHash(timestampBytes);
-
-        // Convert the hash to a Base64 string.
-        return Convert.ToBase64String(hashBytes);
+        return timestamp.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");
     }
 }
